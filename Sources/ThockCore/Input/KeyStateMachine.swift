@@ -69,12 +69,30 @@ public struct KeyStateMachine: Sendable {
                 batch.append(trigger(entry, .down))
                 batch.append(trigger(entry, .up, timing: .afterPress))
             case let .flag(device, generic):
-                let reportsSides = event.flags & KeyMap.deviceModifierMask != 0
-                let isDown = event.flags & device != 0 || (!reportsSides && event.flags & generic != 0)
-                if isDown, pressed.insert(event.keycode) {
-                    batch.append(trigger(entry, .down))
-                } else if !isDown, pressed.remove(event.keycode) {
-                    batch.append(trigger(entry, .up))
+                let sideIsKnown = device == generic || event.flags & KeyMap.deviceModifierMask != 0
+                if sideIsKnown {
+                    let isDown = event.flags & device != 0
+                    if isDown, pressed.insert(event.keycode) {
+                        batch.append(trigger(entry, .down))
+                    } else if !isDown, pressed.remove(event.keycode) {
+                        batch.append(trigger(entry, .up))
+                    }
+                } else if event.flags & generic != 0 {
+                    // The generic flag stays set while the other side is held, so a change on a held key is its release.
+                    if pressed.remove(event.keycode) {
+                        batch.append(trigger(entry, .up))
+                    } else {
+                        pressed.insert(event.keycode)
+                        batch.append(trigger(entry, .down))
+                    }
+                } else {
+                    for keycode in UInt16(0)..<256 where pressed.contains(keycode) {
+                        let held = KeyMap.entry(for: keycode)
+                        if case let .flag(_, heldGeneric) = held.modifier, heldGeneric == generic {
+                            pressed.remove(keycode)
+                            batch.append(trigger(held, .up))
+                        }
+                    }
                 }
             case .none:
                 break
