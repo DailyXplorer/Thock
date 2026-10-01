@@ -1,5 +1,6 @@
 import AppKit
 import Carbon
+import CoreAudio
 import Observation
 import os
 import ServiceManagement
@@ -24,6 +25,7 @@ final class AppModel {
     private(set) var loginItemStatus = SMAppService.mainApp.status
     private(set) var loginItemError: String?
     private(set) var hotKeyError: String?
+    private(set) var packError: String?
     private(set) var excludedFrontAppName: String?
     let isProbe: Bool
 
@@ -63,7 +65,12 @@ final class AppModel {
     var packID: String {
         didSet {
             UserDefaults.standard.set(packID, forKey: Keys.pack)
-            loadPack()
+            packError = nil
+            if packID == loadedPackID {
+                packLoad?.cancel()
+            } else {
+                loadPack()
+            }
         }
     }
 
@@ -92,8 +99,13 @@ final class AppModel {
         didSet {
             UserDefaults.standard.set(outputUID, forKey: Keys.output)
             audio.setOutputDevice(uid: outputUID)
+            outputMonitor?.refresh()
             microphoneMonitor?.refresh()
         }
+    }
+
+    private var selectedOutputDevice: AudioDeviceID? {
+        outputUID.flatMap(OutputDevices.device(uid:)) ?? OutputDevices.defaultOutput
     }
 
     var measuringLatency: Bool {
@@ -117,6 +129,7 @@ final class AppModel {
     @ObservationIgnored private var hotKeyRegistration: HotKey?
     @ObservationIgnored private var permissionWait: Task<Void, Never>?
     @ObservationIgnored private var packLoad: Task<Void, Never>?
+    @ObservationIgnored private var loadedPackID: String?
     @ObservationIgnored private var secureInputTimer: Timer?
     @ObservationIgnored private var workspaceObserver: NSObjectProtocol?
     @ObservationIgnored private let logger = Logger(subsystem: "io.github.dailyxplorer.thock", category: "bench")
@@ -189,6 +202,7 @@ final class AppModel {
         loadPack()
 
         let outputMonitor = OutputDeviceMonitor(
+            outputDevice: { [weak self] in self?.selectedOutputDevice },
             onDevicesChanged: { [weak self] in
                 guard let self else { return }
                 outputs = OutputDevices.all()
@@ -350,9 +364,7 @@ final class AppModel {
     private func updateMicrophoneMonitor() {
         if muteRules.microphoneInUse {
             guard microphoneMonitor == nil else { return }
-            let monitor = MicrophoneMonitor(outputDevice: { [weak self] in
-                self?.outputUID.flatMap(OutputDevices.device(uid:)) ?? OutputDevices.defaultOutput
-            }, onChange: { [weak self] inUse in
+            let monitor = MicrophoneMonitor(outputDevice: { [weak self] in self?.selectedOutputDevice }, onChange: { [weak self] inUse in
                 self?.signals.microphoneInUse = inUse
             })
             microphoneMonitor = monitor
@@ -446,16 +458,24 @@ final class AppModel {
     private func loadPack() {
         guard let pack = packs.first(where: { $0.id == packID }) ?? packs.first(where: { $0.id == Self.defaultPackID }) ?? packs.first else { return }
         let audio = audio
-        let (id, url) = (pack.id, pack.url)
+        let (id, url, name) = (pack.id, pack.url, pack.info.name)
         packLoad?.cancel()
-        packLoad = Task {
+        packLoad = Task { [weak self] in
             do {
                 let source = try await Task.detached(priority: .userInitiated) { try PackLoader.load(directory: url) }.value
                 // A newer selection cancelled this load while it ran off the main actor; its result is stale.
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, let self else { return }
                 audio.setPack(source)
+                loadedPackID = id
             } catch {
+                guard !Task.isCancelled, let self else { return }
                 Logger(subsystem: "io.github.dailyxplorer.thock", category: "audio").error("Pack \(id, privacy: .public) failed to load: \(String(describing: error), privacy: .public)")
+                // Point the selection back at the pack the engine still plays, so the UI never shows a pack it isn't playing.
+                if let fallback = loadedPackID ?? (id == Self.defaultPackID ? nil : Self.defaultPackID) {
+                    packID = fallback
+                }
+                let reason = (error as? PackLoaderError).flatMap { PackImportError.invalid($0).errorDescription } ?? error.localizedDescription
+                packError = "Le pack « \(name) » n'a pas pu être chargé. \(reason)"
             }
         }
     }

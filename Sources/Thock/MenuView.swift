@@ -75,7 +75,7 @@ struct MenuView: View {
         if reasons.contains(.manual) { lines.append("Coupé (\(model.hotKey.displayString) pour réactiver)") }
         if reasons.contains(.microphoneInUse) { lines.append("En sourdine : le micro est utilisé") }
         if reasons.contains(.excludedApp) { lines.append("En sourdine : \(model.excludedFrontAppName ?? "app exclue") est au premier plan") }
-        if reasons.contains(.systemOutputMuted) { lines.append("En sourdine : la sortie système est muette") }
+        if reasons.contains(.systemOutputMuted) { lines.append("En sourdine : la sortie audio est muette") }
         return lines
     }
 
@@ -91,6 +91,9 @@ struct MenuView: View {
             ForEach(model.packs) { pack in
                 Text(pack.isImported ? "\(pack.info.name) (importé)" : pack.info.name).tag(pack.id)
             }
+        }
+        if let error = model.packError {
+            note(error, systemImage: "exclamationmark.triangle")
         }
         Picker("Sortie", selection: $model.outputUID) {
             Text("Sortie par défaut du système").tag(String?.none)

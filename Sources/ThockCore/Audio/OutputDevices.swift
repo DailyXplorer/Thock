@@ -82,13 +82,17 @@ public enum OutputDevices {
 
 @MainActor
 public final class OutputDeviceMonitor {
+    private let outputDevice: @MainActor () -> AudioDeviceID?
     private let onDevicesChanged: @MainActor () -> Void
     private let onSystemMuteChanged: @MainActor (Bool) -> Void
     private var hardwareListener: AudioObjectPropertyListenerBlock?
     private var muteListener: AudioObjectPropertyListenerBlock?
     private var mutedDevice: AudioDeviceID?
 
-    public init(onDevicesChanged: @escaping @MainActor () -> Void, onSystemMuteChanged: @escaping @MainActor (Bool) -> Void) {
+    public init(outputDevice: @escaping @MainActor () -> AudioDeviceID?,
+                onDevicesChanged: @escaping @MainActor () -> Void,
+                onSystemMuteChanged: @escaping @MainActor (Bool) -> Void) {
+        self.outputDevice = outputDevice
         self.onDevicesChanged = onDevicesChanged
         self.onSystemMuteChanged = onSystemMuteChanged
     }
@@ -98,7 +102,7 @@ public final class OutputDeviceMonitor {
         let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.watchDefaultOutputMute()
+                self.refresh()
                 self.onDevicesChanged()
             }
         }
@@ -107,11 +111,11 @@ public final class OutputDeviceMonitor {
             var address = AudioObjectPropertyAddress(selector: selector, scope: kAudioObjectPropertyScopeGlobal)
             AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
         }
-        watchDefaultOutputMute()
+        refresh()
     }
 
-    private func watchDefaultOutputMute() {
-        let device = OutputDevices.defaultOutput
+    public func refresh() {
+        let device = outputDevice()
         if device != mutedDevice {
             if let mutedDevice, let muteListener {
                 var address = Self.muteAddress
