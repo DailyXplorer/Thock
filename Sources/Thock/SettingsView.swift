@@ -141,6 +141,12 @@ struct PackSettings: View {
                 Button("Importer un dossier…") { choosePack() }
                 Text("ou glissez un dossier de pack sur la liste.").foregroundStyle(.secondary)
             }
+            if let error = model.packError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if let message {
                 Text(message.text)
                     .font(.caption)
