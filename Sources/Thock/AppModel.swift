@@ -116,6 +116,7 @@ final class AppModel {
     @ObservationIgnored private var microphoneMonitor: MicrophoneMonitor?
     @ObservationIgnored private var hotKeyRegistration: HotKey?
     @ObservationIgnored private var permissionWait: Task<Void, Never>?
+    @ObservationIgnored private var packLoad: Task<Void, Never>?
     @ObservationIgnored private var secureInputTimer: Timer?
     @ObservationIgnored private var workspaceObserver: NSObjectProtocol?
     @ObservationIgnored private let logger = Logger(subsystem: "com.louis.thock", category: "bench")
@@ -446,9 +447,13 @@ final class AppModel {
         guard let pack = packs.first(where: { $0.id == packID }) ?? packs.first(where: { $0.id == Self.defaultPackID }) ?? packs.first else { return }
         let audio = audio
         let (id, url) = (pack.id, pack.url)
-        Task.detached(priority: .userInitiated) {
+        packLoad?.cancel()
+        packLoad = Task {
             do {
-                audio.setPack(try PackLoader.load(directory: url))
+                let source = try await Task.detached(priority: .userInitiated) { try PackLoader.load(directory: url) }.value
+                // A newer selection cancelled this load while it ran off the main actor; its result is stale.
+                guard !Task.isCancelled else { return }
+                audio.setPack(source)
             } catch {
                 Logger(subsystem: "com.louis.thock", category: "audio").error("Pack \(id, privacy: .public) failed to load: \(String(describing: error), privacy: .public)")
             }
