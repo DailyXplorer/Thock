@@ -1,0 +1,104 @@
+name: Thock
+options:
+  bundleIdPrefix: com.louis
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+configFiles:
+  Debug: Config/Shared.xcconfig
+  Release: Config/Shared.xcconfig
+targets:
+  ThockCore:
+    type: library.static
+    platform: macOS
+    sources:
+      - Sources/ThockCore
+      - path: Sources/CRing
+        buildPhase: none
+    settings:
+      base:
+        SWIFT_INSTALL_OBJC_HEADER: NO
+  Thock:
+    type: application
+    platform: macOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    sources:
+      - path: Sources/Thock
+        excludes:
+          - Resources
+      - path: Sources/Thock/Resources/Packs
+        type: folder
+        buildPhase: resources
+      - path: Sources/Thock/Resources/Assets.xcassets
+        buildPhase: resources
+      - path: Config/Info.plist
+        buildPhase: none
+      - path: Config/Thock.entitlements
+        buildPhase: none
+    dependencies:
+      - target: ThockCore
+    settings:
+      base:
+        PRODUCT_NAME: Thock
+        PRODUCT_BUNDLE_IDENTIFIER: com.louis.thock
+        INFOPLIST_FILE: Config/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_ENTITLEMENTS: Config/Thock.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        ENABLE_DEBUG_DYLIB: NO
+        ENABLE_PREVIEWS: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+  ThockRender:
+    type: tool
+    platform: macOS
+    sources:
+      - Tools/ThockRender
+    dependencies:
+      - target: ThockCore
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        ENABLE_HARDENED_RUNTIME: NO
+  ThockCoreTests:
+    type: bundle.unit-test
+    platform: macOS
+    configFiles:
+      Debug: Config/Signing.xcconfig
+      Release: Config/Signing.xcconfig
+    sources:
+      - Tests/ThockCoreTests
+      - path: Sources/Thock/Resources/Packs
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - target: ThockCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.louis.thock.tests
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: NO
+schemes:
+  Thock:
+    build:
+      targets:
+        Thock: [run, profile, analyze, archive]
+        ThockCoreTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ThockCoreTests
+  ThockRender:
+    build:
+      targets:
+        ThockRender: [run]
+    run:
+      config: Debug
