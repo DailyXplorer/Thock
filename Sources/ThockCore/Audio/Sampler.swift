@@ -83,15 +83,15 @@ final class Sampler: @unchecked Sendable {
             start(command, state, cycleHost: cycleHost, frames: frames)
         }
 
-        var active = 0
+        var playing = 0
         let voices = state.pointee.voices
         for index in 0..<state.pointee.voiceCount where voices[index].samples != nil {
+            playing += 1
             mix(&voices[index], state, left, right, frames)
-            if voices[index].samples != nil { active += 1 }
         }
-        state.pointee.peakVoices = max(state.pointee.peakVoices, active)
+        state.pointee.peakVoices = max(state.pointee.peakVoices, playing)
 
-        guard active > 0 || state.pointee.limiterGain < 1 else {
+        guard playing > 0 || state.pointee.limiterGain < 1 else {
             isSilence.pointee = true
             return noErr
         }
