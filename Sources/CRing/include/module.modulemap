@@ -1,0 +1,4 @@
+module CRing {
+    header "spsc_ring.h"
+    export *
+}
