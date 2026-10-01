@@ -67,6 +67,45 @@ struct KeyStateMachineTests {
         ])
     }
 
+    @Test func releasingOneShiftWithoutSideBitsWhileTheOtherIsHeldDoesNotStickIt() {
+        var machine = KeyStateMachine()
+        let triggers = run([
+            flags(56, shiftFlag),
+            flags(60, shiftFlag),
+            flags(56, shiftFlag),
+            flags(60, 0),
+            flags(56, shiftFlag),
+        ], on: &machine)
+        #expect(triggers.map(\.label) == [
+            "modifier down", "modifier down", "modifier up", "modifier up", "modifier down",
+        ])
+        #expect(triggers[2].column == triggers[0].column)
+        #expect(triggers[3].column == triggers[1].column)
+        #expect(machine.pressed.contains(56) && machine.pressed.count == 1)
+    }
+
+    @Test func genericFlagDroppingWithoutSideBitsReleasesBothSides() {
+        var machine = KeyStateMachine()
+        let triggers = run([flags(56, shiftFlag), flags(60, shiftFlag), flags(60, 0)], on: &machine)
+        #expect(triggers.map(\.label) == ["modifier down", "modifier down", "modifier up", "modifier up"])
+        #expect(triggers[2].column == triggers[0].column)
+        #expect(triggers[3].column == triggers[1].column)
+        #expect(machine.pressed.isEmpty)
+        #expect(run([flags(56, shiftFlag)], on: &machine).map(\.label) == ["modifier down"])
+    }
+
+    @Test func releasingOneSideWithSideBitsKeepsTheOtherHeld() {
+        var machine = KeyStateMachine()
+        let triggers = run([
+            flags(56, shiftFlag | leftShiftBit),
+            flags(60, shiftFlag | leftShiftBit | rightShiftBit),
+            flags(60, shiftFlag | leftShiftBit),
+        ], on: &machine)
+        #expect(triggers.map(\.label) == ["modifier down", "modifier down", "modifier up"])
+        #expect(triggers[2].column == triggers[1].column)
+        #expect(machine.pressed.contains(56) && machine.pressed.count == 1)
+    }
+
     @Test func fnUsesTheSecondaryFnFlag() {
         #expect(sounds([flags(63, fnFlag), flags(63, 0)]) == ["modifier down", "modifier up"])
     }
