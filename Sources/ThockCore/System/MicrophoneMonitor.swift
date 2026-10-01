@@ -57,17 +57,14 @@ public final class MicrophoneMonitor {
         let input = Self.defaultInput
         watch(input: input)
         let inUse: Bool
-        if let input, input == outputDevice() {
-            if #available(macOS 14.2, *) {
-                let processes = Self.audioProcesses()
-                watch(processes: processes)
-                inUse = processes.contains(where: Self.recordsInput)
-            } else {
-                inUse = false
-            }
+        // A duplex device also runs for playback, so only per-process input state proves recording.
+        if let input, Self.hasOutputStreams(input), #available(macOS 14.2, *) {
+            let processes = Self.audioProcesses()
+            watch(processes: processes)
+            inUse = processes.contains(where: Self.recordsInput)
         } else {
             watch(processes: [])
-            inUse = input.map(Self.isRunningSomewhere) ?? false
+            inUse = input.map { $0 != outputDevice() && Self.isRunningSomewhere($0) } ?? false
         }
         guard inUse != lastReported else { return }
         lastReported = inUse
@@ -123,6 +120,12 @@ public final class MicrophoneMonitor {
         var size = UInt32(MemoryLayout<AudioDeviceID>.size)
         let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device)
         return status == noErr && device != kAudioObjectUnknown ? device : nil
+    }
+
+    private static func hasOutputStreams(_ device: AudioDeviceID) -> Bool {
+        var address = AudioObjectPropertyAddress(selector: kAudioDevicePropertyStreams, scope: kAudioObjectPropertyScopeOutput)
+        var size: UInt32 = 0
+        return AudioObjectGetPropertyDataSize(device, &address, 0, nil, &size) == noErr && size > 0
     }
 
     private static func isRunningSomewhere(_ device: AudioDeviceID) -> Bool {
