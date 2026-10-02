@@ -132,7 +132,7 @@ final class AppModel {
     @ObservationIgnored private var loadedPackID: String?
     @ObservationIgnored private var secureInputTimer: Timer?
     @ObservationIgnored private var workspaceObserver: NSObjectProtocol?
-    @ObservationIgnored private let logger = Logger(subsystem: "com.louis.thock", category: "bench")
+    @ObservationIgnored private let logger = Logger(subsystem: AppIdentity.subsystem, category: "bench")
 
     private enum Keys {
         static let enabled = "enabled"
@@ -186,7 +186,7 @@ final class AppModel {
         let storedPackID = defaults.string(forKey: Keys.pack)
         packID = available.contains { $0.id == storedPackID } ? storedPackID ?? Self.defaultPackID : Self.defaultPackID
 
-        let queue = DispatchQueue(label: "com.louis.thock.audio", qos: .userInteractive)
+        let queue = DispatchQueue(label: "\(AppIdentity.subsystem).audio", qos: .userInteractive)
         let audio = AudioEngine(queue: queue)
         self.audio = audio
         pipeline = InputPipeline(queue: queue, filter: SourceFilter(includeSynthetic: includeSynthetic), probe: isProbe) { trigger, timestamp in
@@ -469,7 +469,7 @@ final class AppModel {
                 loadedPackID = id
             } catch {
                 guard !Task.isCancelled, let self else { return }
-                Logger(subsystem: "com.louis.thock", category: "audio").error("Pack \(id, privacy: .public) failed to load: \(String(describing: error), privacy: .public)")
+                Logger(subsystem: AppIdentity.subsystem, category: "audio").error("Pack \(id, privacy: .public) failed to load: \(String(describing: error), privacy: .public)")
                 // Point the selection back at the pack the engine still plays, so the UI never shows a pack it isn't playing.
                 if let fallback = loadedPackID ?? (id == Self.defaultPackID ? nil : Self.defaultPackID) {
                     packID = fallback

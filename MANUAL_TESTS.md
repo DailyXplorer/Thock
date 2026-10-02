@@ -4,7 +4,7 @@
 
 ## 0. Préparation
 
-- [ ] `make build` puis `make verify-signature` : `Authority=` affiche le certificat choisi dans `Config/Signing.local.xcconfig`, `flags=0x10000(runtime)`, `designated => identifier "com.louis.thock" and certificate leaf = H"<SHA1 du certificat>"`.
+- [ ] `make build` puis `make verify-signature` : `Authority=` affiche le certificat choisi dans `Config/Signing.local.xcconfig`, `flags=0x10000(runtime)`, `designated => identifier "io.github.dailyxplorer.thock" and certificate leaf = H"<SHA1 du certificat>"`.
 - [ ] Aucune invite de mot de passe pendant le build ni au lancement.
 
 ## 1. Permission et onboarding
@@ -33,7 +33,7 @@
 - [ ] **Latence réelle** : `make latency`, taper une minute, lire p50 et p99 dans Diagnostics (attendu : p99 < 2 ms). « Horodatages hors horloge hôte » ne doit pas augmenter à chaque frappe, sinon l'hypothèse sur l'unité du timestamp est fausse. Écouter aussi sur les haut-parleurs intégrés ou en filaire pour juger le délai ressenti (≈ 7 ms estimés).
 - [ ] **CPU sur sortie filaire** : choisir les haut-parleurs intégrés comme sortie système, puis `make cpu`. Attendu : < 1 % au repos, < 3 % pendant le banc.- [ ] **Débrancher puis rebrancher des AirPods en tapant** : pas de crash. Le son revient en moins d'une seconde sur la nouvelle sortie et « Reconstructions » augmente.
 - [ ] **Sortie choisie puis déconnectée** : choisir le casque dans « Sortie », puis l'éteindre. Le son passe sur la sortie par défaut et le menu affiche « Périphérique déconnecté ». Le rallumer : le son y revient.
-- [ ] **Instruments Allocations** (optionnel, la mesure automatisée couvre ce point) : profiler Thock pendant la frappe et filtrer sur `com.louis.thock.audio`. Aucune allocation ne doit apparaître pendant la frappe, ni sur cette file ni sur le thread de rendu audio.
+- [ ] **Instruments Allocations** (optionnel, la mesure automatisée couvre ce point) : profiler Thock pendant la frappe et filtrer sur `io.github.dailyxplorer.thock.audio`. Aucune allocation ne doit apparaître pendant la frappe, ni sur cette file ni sur le thread de rendu audio.
 
 ## 4. Système
 

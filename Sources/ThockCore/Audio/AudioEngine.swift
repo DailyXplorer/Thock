@@ -45,7 +45,7 @@ public final class AudioEngine: @unchecked Sendable {
     public let queue: DispatchQueue
     let engine: AVAudioEngine
     let sampler: Sampler
-    private let logger = Logger(subsystem: "com.louis.thock", category: "audio")
+    private let logger = Logger(subsystem: AppIdentity.subsystem, category: "audio")
     private let metrics = OSAllocatedUnfairLock(initialState: Metrics())
 
     private var started = false

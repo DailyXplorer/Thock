@@ -26,7 +26,7 @@ public final class InputPipeline: @unchecked Sendable {
         self.ring = ring
         self.filter = filter
         self.sink = sink
-        probeLogger = probe ? Logger(subsystem: "com.louis.thock", category: "probe") : nil
+        probeLogger = probe ? Logger(subsystem: AppIdentity.subsystem, category: "probe") : nil
         wakeSource = DispatchSource.makeUserDataAddSource(queue: queue)
         _ = KeyMap.entry(for: 0)
         wakeSource.setEventHandler { [weak self] in self?.drain() }

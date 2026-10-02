@@ -44,7 +44,7 @@ public final class EventTap: @unchecked Sendable {
         let thread = Thread { [context, location, watchdogInterval] in
             Self.run(context: context, location: location, watchdogInterval: watchdogInterval, handshake: handshake)
         }
-        thread.name = "com.louis.thock.event-tap"
+        thread.name = "\(AppIdentity.subsystem).event-tap"
         thread.qualityOfService = .userInteractive
         thread.start()
         handshake.done.wait()

@@ -31,7 +31,7 @@ sample() {
 launch
 sleep "$WARMUP"
 echo "Idle ($IDLE_SECONDS s, pid $pid): $(sample "$IDLE_SECONDS")"
-log show --last 2m --style compact --predicate "subsystem == \"com.louis.thock\" AND category == \"audio\" AND processID == $pid" \
+log show --last 2m --style compact --predicate "subsystem == \"io.github.dailyxplorer.thock\" AND category == \"audio\" AND processID == $pid" \
     | grep -oE 'Engine (started|start failed).*' | tail -1 || echo "Engine never started."
 kill "$pid"
 [ "$BENCH_SECONDS" -gt 0 ] || exit 0
@@ -40,6 +40,6 @@ launch --bench-typing "$BENCH_SECONDS"
 sleep "$WARMUP"
 echo "Synthetic typing, 17 events/s ($((BENCH_SECONDS - 2)) s, pid $pid): $(sample $((BENCH_SECONDS - 2)))"
 sleep 3
-log show --last 2m --style compact --predicate 'subsystem == "com.louis.thock" AND category == "bench"' \
+log show --last 2m --style compact --predicate 'subsystem == "io.github.dailyxplorer.thock" AND category == "bench"' \
     | grep -o 'Bench done.*' | tail -1 || echo "No bench summary in the log."
 kill "$pid"

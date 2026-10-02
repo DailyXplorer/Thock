@@ -4,7 +4,7 @@ CONFIG      := Debug
 DERIVED     := $(HOME)/Library/Developer/Xcode/DerivedData/Thock-make
 PRODUCT     := $(DERIVED)/Build/Products/$(CONFIG)/Thock.app
 APP         := build/Thock.app
-BUNDLE_ID   := com.louis.thock
+BUNDLE_ID   := io.github.dailyxplorer.thock
 DESTINATION := platform=macOS,arch=$(shell uname -m)
 
 SIGNING := $(if $(CODE_SIGN_IDENTITY),CODE_SIGN_IDENTITY="$(CODE_SIGN_IDENTITY)") \

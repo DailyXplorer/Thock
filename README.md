@@ -49,7 +49,7 @@ Si la permission est retirée pendant que Thock tourne, le watchdog du tap (tout
 TCC rattache la permission Surveillance de l'entrée à la designated requirement de l'app. Il faut donc signer chaque build avec la même identité stable. Avec un certificat, la requirement a cette forme :
 
 ```
-identifier "com.louis.thock" and certificate leaf = H"<SHA1 du certificat>"
+identifier "io.github.dailyxplorer.thock" and certificate leaf = H"<SHA1 du certificat>"
 ```
 
 Elle ne dépend que du bundle id et du certificat, donc elle reste la même d'un build à l'autre : on accorde la permission une fois, et elle survit aux rebuilds. `make verify-signature` l'affiche.
@@ -138,7 +138,7 @@ MonPack/
 - Au chargement, Thock mixe en mono et rééchantillonne. Il coupe ensuite chaque fichier 1 ms avant le premier échantillon à 20 dB sous sa propre crête, et après le dernier à 45 dB sous elle. De courts fondus évitent les clics aux deux coupures. Enfin, il normalise le pack entier à -1 dBFS crête. Le seuil est relatif parce que les enregistrements ont jusqu'à 20 dB d'écart de niveau entre eux et un bruit de fond MP3 vers -50 dBFS : un seuil absolu se déclenchait sur le bruit et laissait jusqu'à 20 ms de silence avant l'attaque. Un seul gain pour tout le pack garde les écarts voulus, par exemple une espace plus forte qu'une lettre.
 - Chaque frappe varie en continu : vitesse de lecture à ±1,5 % (±2,5 % pour un relâchement), gain entre -2,5 dB et le niveau enregistré (-4 dB pour un relâchement), et une part du son adoucie par un passe-bas à 3 kHz, jusqu'à 30 % (60 % pour un relâchement). Les relâchements varient davantage parce que kbsim n'en a qu'un fichier par switch. Quand une touche a plusieurs fichiers, elle n'en joue jamais deux fois de suite le même.
 
-**Import.** Glisser le dossier sur la liste de Réglages > Packs, ou cliquer « Importer un dossier… » (sandbox : accès en lecture au seul dossier choisi). Thock copie `pack.json` et les fichiers audio reconnus dans `~/Library/Containers/com.louis.thock/Data/Library/Application Support/Packs/`. Il décode ensuite la copie : un pack qui ne jouerait pas est refusé avec la raison, et rien ne reste sur le disque. Le pack importé est listé avec les packs embarqués, puis sélectionné. Un pack importé se supprime depuis la même liste.
+**Import.** Glisser le dossier sur la liste de Réglages > Packs, ou cliquer « Importer un dossier… » (sandbox : accès en lecture au seul dossier choisi). Thock copie `pack.json` et les fichiers audio reconnus dans `~/Library/Containers/io.github.dailyxplorer.thock/Data/Library/Application Support/Packs/`. Il décode ensuite la copie : un pack qui ne jouerait pas est refusé avec la raison, et rien ne reste sur le disque. Le pack importé est listé avec les packs embarqués, puis sélectionné. Un pack importé se supprime depuis la même liste.
 
 **Packs embarqués.** Ce sont de vrais enregistrements de switches mécaniques, tirés de kbsim (voir Crédits) et convertis par `make packs` en CAF mono 16 bits à 48 kHz :
 

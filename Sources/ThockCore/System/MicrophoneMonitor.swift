@@ -7,7 +7,7 @@ import os
 public final class MicrophoneMonitor {
     private let onChange: @MainActor (Bool) -> Void
     private let outputDevice: @MainActor () -> AudioDeviceID?
-    private let logger = Logger(subsystem: "com.louis.thock", category: "microphone")
+    private let logger = Logger(subsystem: AppIdentity.subsystem, category: "microphone")
 
     private var systemListener: AudioObjectPropertyListenerBlock?
     private var deviceListener: AudioObjectPropertyListenerBlock?

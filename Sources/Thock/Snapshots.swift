@@ -1,6 +1,7 @@
 import AppKit
 import os
 import SwiftUI
+import ThockCore
 
 enum Snapshots {
     static func write(model: AppModel) {
@@ -12,7 +13,7 @@ enum Snapshots {
         render(GeneralSettings(model: model), size: CGSize(width: 520, height: 400), to: folder.appendingPathComponent("settings-general.png"))
         render(MuteSettings(model: model), size: CGSize(width: 520, height: 400), to: folder.appendingPathComponent("settings-mute.png"))
         render(PackSettings(model: model).padding(), size: CGSize(width: 520, height: 400), to: folder.appendingPathComponent("settings-packs.png"))
-        Logger(subsystem: "com.louis.thock", category: "snapshot").notice("Snapshots written to \(folder.path, privacy: .public)")
+        Logger(subsystem: AppIdentity.subsystem, category: "snapshot").notice("Snapshots written to \(folder.path, privacy: .public)")
     }
 
     private static func render(_ view: some View, size: CGSize, to url: URL) {
