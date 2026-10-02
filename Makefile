@@ -17,7 +17,7 @@ XCFILTER := 2>&1 | sed -E '/DVT|CoreSimulator|Simulator|Referenced from:|Expecte
 XCODEBUILD := xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) \
               -derivedDataPath $(DERIVED) -destination '$(DESTINATION)' $(SIGNING)
 
-.PHONY: all project build run probe probe-hid stop logs test reset-permissions packs preview render icon cpu latency verify-signature clean
+.PHONY: all project build run probe probe-hid stop logs test reset-permissions packs preview render shots icon cpu latency verify-signature clean
 
 all: build
 
@@ -73,6 +73,11 @@ render: project
 		-derivedDataPath $(DERIVED) -destination '$(DESTINATION)' build -quiet $(XCFILTER)
 	@mkdir -p "$(RENDERS)" build && ln -sfn "$(RENDERS)" build/renders
 	@"$(DERIVED)/Build/Products/$(CONFIG)/ThockRender" Sources/Thock/Resources/Packs/$(PACK) "$(RENDERS)/$(LABEL)_$(PACK).wav"
+
+shots: project
+	@set -o pipefail; xcodebuild -project $(PROJECT) -scheme ThockSnapshots -configuration $(CONFIG) \
+		-derivedDataPath $(DERIVED) -destination '$(DESTINATION)' build -quiet $(XCFILTER)
+	@"$(DERIVED)/Build/Products/$(CONFIG)/ThockSnapshots" Sources/Thock/Resources/Packs
 
 icon:
 	@swift Scripts/generate-icon.swift Sources/Thock/Resources/Assets.xcassets

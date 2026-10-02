@@ -31,6 +31,7 @@ Other targets:
 | `make render [PACK=mxblue LABEL=after]` | Renders a fast typing sequence offline (100 then 140 words/min, overlapping keys, a Backspace burst, five keys at once) with the real audio engine. Writes `build/renders/LABEL_PACK.wav` (48 kHz, a link into DerivedData, outside iCloud) and prints the peak, clipped samples, cut sounds and timing error. |
 | `make preview [PACK=cream]` | Plays a few keystrokes from a bundled pack with `afplay` (letters on several rows, space, return), without launching Thock. Defaults to `holypanda`. |
 | `make packs` | Downloads the kbsim recordings again and rewrites the bundled pack files that changed. Only this script touches the network, never the app. |
+| `make shots` | Renders the menu designs (current, A, B, C), the menu bar icon options and the edited Settings tabs to PNG at 2x, without launching Thock. Writes to `$THOCK_SNAPSHOT_DIR`, or `/tmp/thock-design-shots`. Try a design in the app with `defaults write io.github.dailyxplorer.thock menuDesign A` (or `B`, `C`) and an icon with `defaults write io.github.dailyxplorer.thock menuBarIcon keycap` (or `keycapWaves`, `waveform`). |
 | `make icon` | Regenerates the app icon. |
 | `make clean` | Deletes the generated project and DerivedData. |
 

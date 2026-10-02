@@ -240,6 +240,34 @@ final class AppModel {
         }
     }
 
+    /// A model frozen in `state`, with no capture, audio output, monitors or hot key, for rendering views offscreen.
+    init(snapshot state: SnapshotState) {
+        isProbe = state.isProbe
+        tapLocation = .session
+        enabled = !state.muteReasons.contains(.manual)
+        muteRules = MuteRules()
+        excludedBundleIDs = []
+        hotKey = .defaultToggle
+        includeSynthetic = false
+        volume = state.volume
+        spatialization = true
+        mouseSounds = state.mouseSounds
+        outputUID = state.outputUID
+        measuringLatency = false
+        packLibrary = PackLibrary(bundledRoot: nil, importedRoot: FileManager.default.temporaryDirectory)
+        packs = state.packs
+        packID = state.packID
+        let queue = DispatchQueue(label: "\(AppIdentity.subsystem).snapshot")
+        audio = AudioEngine(queue: queue)
+        pipeline = InputPipeline(queue: queue) { _, _ in }
+        captureState = state.captureState
+        outputs = state.outputs
+        muteReasons = state.muteReasons
+        secureInputActive = state.secureInputActive
+        packError = state.packError
+        excludedFrontAppName = state.excludedFrontAppName
+    }
+
     var stats: InputStats { pipeline.stats }
     var audioStats: AudioStats { audio.stats }
 
@@ -247,6 +275,14 @@ final class AppModel {
         switch captureState {
         case .needsPermission, .failed: "keyboard.badge.ellipsis"
         case .running, .benchmark: muteReasons.isEmpty ? "keyboard" : "speaker.slash"
+        }
+    }
+
+    var menuBarState: MenuBarIcon.State {
+        switch captureState {
+        case .needsPermission, .failed: .attention
+        case .running, .benchmark:
+            if muteReasons.contains(.manual) { .off } else if muteReasons.isEmpty { .on } else { .muted }
         }
     }
 

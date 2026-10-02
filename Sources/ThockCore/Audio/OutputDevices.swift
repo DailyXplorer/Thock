@@ -6,6 +6,12 @@ public struct OutputDevice: Sendable, Hashable, Identifiable {
     public let id: String
     public let name: String
     let deviceID: AudioDeviceID
+
+    public init(id: String, name: String, deviceID: AudioDeviceID = kAudioObjectUnknown) {
+        self.id = id
+        self.name = name
+        self.deviceID = deviceID
+    }
 }
 
 public enum OutputDevices {

@@ -1,7 +1,34 @@
 import SwiftUI
 import ThockCore
 
+/// Popover design proposals under review. The hidden `menuDesign` default picks one
+/// (`defaults write io.github.dailyxplorer.thock menuDesign A`, or B or C); anything else keeps the current design.
+enum MenuDesign: String, CaseIterable {
+    case current
+    case clean = "A"
+    case packFirst = "B"
+    case compact = "C"
+
+    static var selected: MenuDesign {
+        UserDefaults.standard.string(forKey: "menuDesign").flatMap(MenuDesign.init(rawValue:)) ?? .current
+    }
+}
+
 struct MenuView: View {
+    let model: AppModel
+    var design = MenuDesign.selected
+
+    var body: some View {
+        switch design {
+        case .current: CurrentMenu(model: model)
+        case .clean: CleanMenu(model: model)
+        case .packFirst: PackFirstMenu(model: model)
+        case .compact: CompactMenu(model: model)
+        }
+    }
+}
+
+struct CurrentMenu: View {
     @Bindable var model: AppModel
 
     var body: some View {
@@ -28,7 +55,8 @@ struct MenuView: View {
                 note(error, systemImage: "exclamationmark.triangle")
             }
             DisclosureGroup("Diagnostics") {
-                TimelineView(.periodic(from: .now, by: 0.5)) { _ in diagnostics }
+                DiagnosticsView(model: model)
+                    .padding(.top, 4)
             }
             .font(.callout)
             Divider()
@@ -108,8 +136,23 @@ struct MenuView: View {
         Toggle("Mouse Sounds", isOn: $model.mouseSounds)
     }
 
+    private func note(_ text: String, systemImage: String) -> some View {
+        Label(text, systemImage: systemImage)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+struct DiagnosticsView: View {
+    @Bindable var model: AppModel
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.5)) { _ in content }
+    }
+
     @ViewBuilder
-    private var diagnostics: some View {
+    private var content: some View {
         let stats = model.stats
         let audio = model.audioStats
         VStack(alignment: .leading, spacing: 4) {
@@ -134,13 +177,5 @@ struct MenuView: View {
         }
         .font(.caption.monospacedDigit())
         .foregroundStyle(.secondary)
-        .padding(.top, 4)
-    }
-
-    private func note(_ text: String, systemImage: String) -> some View {
-        Label(text, systemImage: systemImage)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
     }
 }
