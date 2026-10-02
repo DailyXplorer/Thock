@@ -1,7 +1,6 @@
 import AppKit
 
-/// Menu bar icon proposals. The shipping icon stays `AppModel.menuBarSymbol` unless the hidden
-/// `menuBarIcon` default names a style, e.g. `defaults write io.github.dailyxplorer.thock menuBarIcon keycap`.
+/// The menu bar icon: a keycap with sound waves, drawn as a monochrome template image.
 enum MenuBarIcon {
     enum State: CaseIterable {
         case on
@@ -10,37 +9,17 @@ enum MenuBarIcon {
         case attention
     }
 
-    enum Style: String, CaseIterable {
-        case keycap
-        case keycapWaves
-        case waveform
-
-        static var selected: Style? {
-            UserDefaults.standard.string(forKey: "menuBarIcon").flatMap(Style.init(rawValue:))
-        }
-
-        var title: String {
-            switch self {
-            case .keycap: "Keycap"
-            case .keycapWaves: "Keycap + Sound"
-            case .waveform: "Waveform"
-            }
-        }
-    }
-
-    static func image(_ style: Style, _ state: State) -> NSImage {
-        let size = NSSize(width: style == .keycapWaves ? 22 : 18, height: 16)
-        let image = NSImage(size: size, flipped: true) { rect in
+    static func image(_ state: State) -> NSImage {
+        let image = NSImage(size: NSSize(width: 22, height: 16), flipped: true) { rect in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
             // Template alpha survives in the menu bar, so an automatic mute reads as a dimmed icon, unlike the slashed manual off.
             context.setAlpha(state == .muted ? 0.45 : 1)
             context.beginTransparencyLayer(auxiliaryInfo: nil)
-            switch style {
-            case .keycap: drawKeycap(in: CGRect(x: 1, y: 1, width: 16, height: 14), state: state)
-            case .keycapWaves:
-                drawKeycap(in: CGRect(x: 1, y: 2, width: 13, height: 12), state: state)
-                if state != .attention { drawWaves(from: CGPoint(x: 15.5, y: 8)) }
-            case .waveform: drawSymbol(state == .attention ? "waveform.badge.exclamationmark" : "waveform", in: rect)
+            drawKeycap(in: CGRect(x: 1, y: 2, width: 13, height: 12))
+            if state == .attention {
+                drawBadge(at: CGPoint(x: 17, y: 5))
+            } else {
+                drawWaves(from: CGPoint(x: 15.5, y: 8))
             }
             if state == .off { drawSlash(in: rect) }
             context.endTransparencyLayer()
@@ -51,7 +30,7 @@ enum MenuBarIcon {
         return image
     }
 
-    private static func drawKeycap(in rect: CGRect, state: State) {
+    private static func drawKeycap(in rect: CGRect) {
         NSColor.black.set()
         let skirt = NSBezierPath(roundedRect: rect.insetBy(dx: 0.7, dy: 0.7), xRadius: 3.2, yRadius: 3.2)
         skirt.lineWidth = 1.4
@@ -68,12 +47,26 @@ enum MenuBarIcon {
         bevels.line(to: CGPoint(x: rect.maxX - 1.6, y: rect.maxY - 1.6))
         bevels.lineWidth = 1.1
         bevels.stroke()
-        if state == .attention {
-            for index in 0..<3 {
-                let x = face.midX + CGFloat(index - 1) * 2.6
-                NSBezierPath(ovalIn: CGRect(x: x - 0.8, y: face.midY - 0.8, width: 1.6, height: 1.6)).fill()
-            }
-        }
+    }
+
+    /// A filled dot with an exclamation mark knocked out, cut clear of the keycap corner it overlaps.
+    private static func drawBadge(at center: CGPoint) {
+        let radius = 4.2
+        NSGraphicsContext.current?.compositingOperation = .clear
+        NSBezierPath(ovalIn: CGRect(x: center.x - radius - 1.2, y: center.y - radius - 1.2,
+                                    width: 2 * (radius + 1.2), height: 2 * (radius + 1.2))).fill()
+        NSGraphicsContext.current?.compositingOperation = .sourceOver
+        NSColor.black.set()
+        NSBezierPath(ovalIn: CGRect(x: center.x - radius, y: center.y - radius, width: 2 * radius, height: 2 * radius)).fill()
+        NSGraphicsContext.current?.compositingOperation = .clear
+        let stem = NSBezierPath()
+        stem.move(to: CGPoint(x: center.x, y: center.y - 2.4))
+        stem.line(to: CGPoint(x: center.x, y: center.y + 0.4))
+        stem.lineWidth = 1.3
+        stem.lineCapStyle = .round
+        stem.stroke()
+        NSBezierPath(ovalIn: CGRect(x: center.x - 0.7, y: center.y + 1.5, width: 1.4, height: 1.4)).fill()
+        NSGraphicsContext.current?.compositingOperation = .sourceOver
     }
 
     private static func drawWaves(from center: CGPoint) {
@@ -85,13 +78,6 @@ enum MenuBarIcon {
             arc.lineCapStyle = .round
             arc.stroke()
         }
-    }
-
-    private static func drawSymbol(_ name: String, in rect: CGRect) {
-        let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-        guard let symbol = NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(configuration) else { return }
-        let origin = CGPoint(x: rect.midX - symbol.size.width / 2, y: rect.midY - symbol.size.height / 2)
-        symbol.draw(in: CGRect(origin: origin, size: symbol.size))
     }
 
     private static func drawSlash(in rect: CGRect) {

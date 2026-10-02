@@ -8,12 +8,7 @@ struct ThockApp: App {
         MenuBarExtra {
             MenuView(model: model)
         } label: {
-            if let style = MenuBarIcon.Style.selected {
-                Image(nsImage: MenuBarIcon.image(style, model.menuBarState))
-            } else {
-                Image(systemName: model.menuBarSymbol)
-                    .accessibilityLabel("Thock")
-            }
+            Image(nsImage: MenuBarIcon.image(model.menuBarState))
         }
         .menuBarExtraStyle(.window)
     }

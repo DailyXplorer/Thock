@@ -2,8 +2,8 @@ import AppKit
 import SwiftUI
 import ThockCore
 
-// Renders the popover design proposals and menu bar icons to PNG without launching Thock.
-// usage: ThockSnapshots <packs-folder>; PNGs go to $THOCK_SNAPSHOT_DIR or /tmp/thock-design-shots.
+// Renders the popover, the menu bar icon states and the Settings tabs to PNG without launching Thock.
+// usage: ThockSnapshots <packs-folder>; PNGs go to $THOCK_SNAPSHOT_DIR or /tmp/thock-shots.
 
 let arguments = CommandLine.arguments
 guard arguments.count == 2 else {
@@ -12,7 +12,7 @@ guard arguments.count == 2 else {
 }
 NSApplication.shared.setActivationPolicy(.prohibited)
 
-let folder = URL(fileURLWithPath: ProcessInfo.processInfo.environment["THOCK_SNAPSHOT_DIR"] ?? "/tmp/thock-design-shots", isDirectory: true)
+let folder = URL(fileURLWithPath: ProcessInfo.processInfo.environment["THOCK_SNAPSHOT_DIR"] ?? "/tmp/thock-shots", isDirectory: true)
 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
 // PackLibrary skips hidden folders, and some checkouts (iCloud-synced worktrees) carry the hidden flag on every pack
@@ -90,27 +90,16 @@ struct PopoverStage<Content: View>: View {
     }
 }
 
-func shoot(_ design: MenuDesign, _ state: SnapshotState, _ appearance: Appearance, suffix: String = "") {
-    let model = AppModel(snapshot: state)
-    let width: CGFloat = switch design {
-    case .current: 320
-    case .clean: 320
-    case .packFirst: 340
-    case .compact: 280
-    }
-    let prefix = design == .current ? "current" : design.rawValue
-    writePNG(PopoverStage(appearance: appearance) { MenuView(model: model, design: design) },
-             width: width + 64, appearance: appearance, to: "\(prefix)-\(appearance.rawValue)\(suffix).png")
+func shoot(_ state: SnapshotState, _ appearance: Appearance, variant: String = "") {
+    writePNG(PopoverStage(appearance: appearance) { MenuView(model: AppModel(snapshot: state)) },
+             width: 320 + 64, appearance: appearance, to: "menu-\(variant)\(appearance.rawValue).png")
 }
 
-for design in MenuDesign.allCases {
-    for appearance in Appearance.allCases {
-        shoot(design, normal, appearance)
-    }
+for appearance in Appearance.allCases {
+    shoot(normal, appearance)
 }
-shoot(.clean, needsPermission, .light, suffix: "-warning")
-shoot(.clean, needsPermission, .dark, suffix: "-warning")
-shoot(.clean, muted, .light, suffix: "-muted")
+shoot(needsPermission, .light, variant: "warning-")
+shoot(muted, .light, variant: "muted-")
 let settingsModel = AppModel(snapshot: normal)
 writePNG(GeneralSettings(model: settingsModel).frame(height: 400).background(Color(nsColor: .windowBackgroundColor)),
          width: 520, appearance: .light, to: "settings-general.png")
@@ -119,42 +108,24 @@ writePNG(DiagnosticsSettings(model: settingsModel).frame(height: 300).background
 
 struct IconSheet: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            row("Current (SF Symbols)") { state in
-                let symbol = switch state {
-                case .on: "keyboard"
-                case .off, .muted: "speaker.slash"
-                case .attention: "keyboard.badge.ellipsis"
-                }
-                return Image(systemName: symbol)
-            }
-            ForEach(Array(MenuBarIcon.Style.allCases.enumerated()), id: \.offset) { index, style in
-                row("\(index + 1). \(style.title)") { Image(nsImage: MenuBarIcon.image(style, $0)) }
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            strip(dark: false)
+            strip(dark: true)
         }
         .padding(20)
         .background(Color(white: 0.93))
     }
 
-    private func row(_ title: String, icon: @escaping (MenuBarIcon.State) -> Image) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.headline).foregroundStyle(.black)
-            strip(dark: false, icon: icon)
-            strip(dark: true, icon: icon)
-        }
-    }
-
-    private func strip(dark: Bool, icon: @escaping (MenuBarIcon.State) -> Image) -> some View {
+    private func strip(dark: Bool) -> some View {
         HStack(spacing: 0) {
             ForEach(MenuBarIcon.State.allCases, id: \.self) { state in
                 HStack(spacing: 6) {
-                    icon(state)
+                    Image(nsImage: MenuBarIcon.image(state))
                         .renderingMode(.template)
-                        .font(.system(size: 14))
                     Text(caption(state)).font(.system(size: 11))
                         .opacity(0.6)
                 }
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 150, alignment: .leading)
             }
         }
         .foregroundStyle(dark ? Color.white : Color.black)
@@ -174,4 +145,4 @@ struct IconSheet: View {
     }
 }
 
-writePNG(IconSheet(), width: 520, appearance: .light, to: "icons.png")
+writePNG(IconSheet(), width: 664, appearance: .light, to: "icons.png")

@@ -271,13 +271,6 @@ final class AppModel {
     var stats: InputStats { pipeline.stats }
     var audioStats: AudioStats { audio.stats }
 
-    var menuBarSymbol: String {
-        switch captureState {
-        case .needsPermission, .failed: "keyboard.badge.ellipsis"
-        case .running, .benchmark: muteReasons.isEmpty ? "keyboard" : "speaker.slash"
-        }
-    }
-
     var menuBarState: MenuBarIcon.State {
         switch captureState {
         case .needsPermission, .failed: .attention

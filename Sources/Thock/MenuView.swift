@@ -1,146 +1,239 @@
 import SwiftUI
 import ThockCore
 
-/// Popover design proposals under review. The hidden `menuDesign` default picks one
-/// (`defaults write io.github.dailyxplorer.thock menuDesign A`, or B or C); anything else keeps the current design.
-enum MenuDesign: String, CaseIterable {
-    case current
-    case clean = "A"
-    case packFirst = "B"
-    case compact = "C"
-
-    static var selected: MenuDesign {
-        UserDefaults.standard.string(forKey: "menuDesign").flatMap(MenuDesign.init(rawValue:)) ?? .current
+/// One status line the popover can show under its header.
+struct MenuNotice: Identifiable {
+    enum Tone {
+        case info
+        case warning
+        case critical
     }
+
+    struct Action {
+        let title: String
+        let perform: () -> Void
+    }
+
+    let id: String
+    let tone: Tone
+    let symbol: String
+    let text: String
+    var action: Action?
 }
 
-struct MenuView: View {
-    let model: AppModel
-    var design = MenuDesign.selected
-
-    var body: some View {
-        switch design {
-        case .current: CurrentMenu(model: model)
-        case .clean: CleanMenu(model: model)
-        case .packFirst: PackFirstMenu(model: model)
-        case .compact: CompactMenu(model: model)
+extension AppModel {
+    /// The one-word state shown next to the switch; the notices carry the details.
+    var stateTitle: String {
+        switch captureState {
+        case .needsPermission: "Needs Permission"
+        case .failed: "Not Running"
+        case .benchmark: "Benchmark"
+        case .running:
+            if muteReasons.contains(.manual) { "Off" } else if muteReasons.isEmpty { "On" } else { "Muted" }
         }
     }
+
+    var notices: [MenuNotice] {
+        var notices: [MenuNotice] = []
+        switch captureState {
+        case .needsPermission:
+            notices.append(MenuNotice(id: "permission", tone: .warning, symbol: "hand.raised.fill",
+                                      text: "Thock needs the Input Monitoring permission to hear your keyboard.",
+                                      action: .init(title: "Set Up Permission…", perform: showOnboarding)))
+        case .failed:
+            notices.append(MenuNotice(id: "failed", tone: .critical, symbol: "exclamationmark.triangle.fill",
+                                      text: "Permission is granted but capture didn't start.",
+                                      action: .init(title: "Relaunch Thock", perform: relaunch)))
+        case .benchmark:
+            notices.append(MenuNotice(id: "benchmark", tone: .info, symbol: "gauge.with.dots.needle.67percent",
+                                      text: "Synthetic typing benchmark (capture off)"))
+        case .running:
+            if muteReasons.contains(.manual) {
+                notices.append(MenuNotice(id: "manual", tone: .info, symbol: "keyboard",
+                                          text: "Press \(hotKey.displayString) to turn Thock back on."))
+            }
+            if muteReasons.contains(.microphoneInUse) {
+                notices.append(MenuNotice(id: "microphone", tone: .info, symbol: "mic.fill", text: "Muted while the microphone is in use"))
+            }
+            if muteReasons.contains(.excludedApp) {
+                notices.append(MenuNotice(id: "excluded", tone: .info, symbol: "app.badge.checkmark",
+                                          text: "Muted while \(excludedFrontAppName ?? "an excluded app") is frontmost"))
+            }
+            if muteReasons.contains(.systemOutputMuted) {
+                notices.append(MenuNotice(id: "output", tone: .info, symbol: "speaker.slash.fill", text: "Muted because the audio output is muted"))
+            }
+        }
+        if secureInputActive {
+            notices.append(MenuNotice(id: "secure", tone: .info, symbol: "lock.fill",
+                                      text: "Secure input is on: macOS hides keystrokes from every app, so Thock stays silent."))
+        }
+        if let packError {
+            notices.append(MenuNotice(id: "pack", tone: .warning, symbol: "exclamationmark.triangle.fill", text: packError))
+        }
+        if isProbe {
+            notices.append(MenuNotice(id: "probe", tone: .info, symbol: "waveform.badge.magnifyingglass", text: "Probe mode on"))
+        }
+        return notices
+    }
 }
 
-struct CurrentMenu: View {
+/// Control Center–like: a one-line header with the switch, then one aligned column of full-width controls.
+/// Everything set once and rarely changed lives in Settings.
+struct MenuView: View {
     @Bindable var model: AppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Thock").font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "keyboard.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(model.menuBarState == .on ? Color.accentColor : Color.gray, in: Circle())
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Thock").font(.headline)
+                    Text(model.stateTitle).font(.subheadline).foregroundStyle(.secondary)
+                }
                 Spacer()
                 Toggle("Enabled", isOn: $model.enabled)
                     .toggleStyle(.switch)
                     .labelsHidden()
+                    .fixedSize()
                     .help("Turn Thock on or off (\(model.hotKey.displayString))")
             }
-            status
-            Divider()
-            sound
-            Divider()
-            Toggle("Include Synthetic Keystrokes", isOn: $model.includeSynthetic)
-                .help("Keystrokes injected by a text expander, Keyboard Maestro or remote control.")
-            Toggle("Launch at Login", isOn: $model.launchAtLogin)
-            if model.loginItemStatus == .requiresApproval {
-                note("Allow it in System Settings > General > Login Items.", systemImage: "exclamationmark.circle")
+            let notices = model.notices
+            if !notices.isEmpty {
+                VStack(spacing: 6) {
+                    ForEach(notices) { NoticeView(notice: $0) }
+                }
             }
-            if let error = model.loginItemError {
-                note(error, systemImage: "exclamationmark.triangle")
+            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 10) {
+                GridRow {
+                    label("Volume")
+                    HStack(spacing: 8) {
+                        Image(systemName: "speaker.fill")
+                        Slider(value: $model.volume, in: 0...1)
+                        Image(systemName: "speaker.wave.3.fill")
+                    }
+                    .foregroundStyle(.secondary)
+                    .imageScale(.small)
+                }
+                GridRow {
+                    label("Sound")
+                    Picker("Pack", selection: $model.packID) {
+                        ForEach(model.packs) { pack in
+                            Text(pack.isImported ? "\(pack.info.name) (imported)" : pack.info.name).tag(pack.id)
+                        }
+                    }
+                    .labelsHidden()
+                    .fullWidth()
+                }
+                GridRow {
+                    label("Output")
+                    Picker("Output", selection: $model.outputUID) {
+                        Text("System Default Output").tag(String?.none)
+                        ForEach(model.outputs) { Text($0.name).tag(String?.some($0.id)) }
+                        if let uid = model.outputUID, !model.outputs.contains(where: { $0.id == uid }) {
+                            Text("Disconnected Device (using default output)").tag(String?.some(uid))
+                        }
+                    }
+                    .labelsHidden()
+                    .fullWidth()
+                }
+                GridRow {
+                    label("Mouse")
+                    Toggle("Play Click Sounds", isOn: $model.mouseSounds)
+                        .toggleStyle(.checkbox)
+                }
             }
-            DisclosureGroup("Diagnostics") {
-                DiagnosticsView(model: model)
-                    .padding(.top, 4)
-            }
-            .font(.callout)
-            Divider()
+            .padding(12)
+            .background(.fill.quinary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             HStack {
-                Button("Settings…") { model.showSettings() }
+                FooterButton(title: "Settings…", shortcut: ",", action: model.showSettings)
                 Spacer()
-                Button("Quit Thock") { NSApplication.shared.terminate(nil) }
+                FooterButton(title: "Quit Thock", shortcut: "q") { NSApplication.shared.terminate(nil) }
             }
-        }
-        .padding()
-        .frame(width: 320, alignment: .leading)
-        .onAppear { model.refreshLoginItemStatus() }
-    }
-
-    @ViewBuilder
-    private var status: some View {
-        switch model.captureState {
-        case .running:
-            if model.muteReasons.isEmpty {
-                note("Active", systemImage: "checkmark.circle")
-            } else {
-                ForEach(muteDescriptions, id: \.self) { note($0, systemImage: "speaker.slash") }
-            }
-        case .benchmark:
-            note("Synthetic typing benchmark (capture off)", systemImage: "gauge.with.dots.needle.67percent")
-        case .needsPermission:
-            note("Thock is waiting for the Input Monitoring permission.", systemImage: "hand.raised")
-            Button("Set Up Permission…") { model.showOnboarding() }
-        case .failed:
-            note("Permission is granted but capture didn't start.", systemImage: "exclamationmark.triangle")
-            Button("Relaunch Thock") { model.relaunch() }
-        }
-        if model.secureInputActive {
-            note("Secure input is on: macOS hides keystrokes from every app, so Thock stays silent.", systemImage: "lock.fill")
-        }
-        if model.isProbe {
-            note("Probe mode on", systemImage: "waveform.badge.magnifyingglass")
-        }
-    }
-
-    private var muteDescriptions: [String] {
-        var lines: [String] = []
-        let reasons = model.muteReasons
-        if reasons.contains(.manual) { lines.append("Off (\(model.hotKey.displayString) to turn back on)") }
-        if reasons.contains(.microphoneInUse) { lines.append("Muted: the microphone is in use") }
-        if reasons.contains(.excludedApp) { lines.append("Muted: \(model.excludedFrontAppName ?? "an excluded app") is frontmost") }
-        if reasons.contains(.systemOutputMuted) { lines.append("Muted: the audio output is muted") }
-        return lines
-    }
-
-    @ViewBuilder
-    private var sound: some View {
-        HStack {
-            Image(systemName: "speaker.fill")
-            Slider(value: $model.volume, in: 0...1)
-            Image(systemName: "speaker.wave.3.fill")
-        }
-        .foregroundStyle(.secondary)
-        Picker("Pack", selection: $model.packID) {
-            ForEach(model.packs) { pack in
-                Text(pack.isImported ? "\(pack.info.name) (imported)" : pack.info.name).tag(pack.id)
-            }
-        }
-        if let error = model.packError {
-            note(error, systemImage: "exclamationmark.triangle")
-        }
-        Picker("Output", selection: $model.outputUID) {
-            Text("System Default Output").tag(String?.none)
-            ForEach(model.outputs) { output in
-                Text(output.name).tag(String?.some(output.id))
-            }
-            if let uid = model.outputUID, !model.outputs.contains(where: { $0.id == uid }) {
-                Text("Disconnected Device (using default output)").tag(String?.some(uid))
-            }
-        }
-        Toggle("Spatialization", isOn: $model.spatialization)
-        Toggle("Mouse Sounds", isOn: $model.mouseSounds)
-    }
-
-    private func note(_ text: String, systemImage: String) -> some View {
-        Label(text, systemImage: systemImage)
             .font(.callout)
+            .padding(.horizontal, 4)
+        }
+        .padding(14)
+        .frame(width: 320)
+    }
+
+    private func label(_ text: String) -> some View {
+        Text(text)
             .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+            .gridColumnAlignment(.trailing)
+    }
+}
+
+private extension View {
+    /// Menu pickers hug their title; only macOS 26 lets them stretch to the column width.
+    @ViewBuilder
+    func fullWidth() -> some View {
+        if #available(macOS 26.0, *) {
+            buttonSizing(.flexible).frame(maxWidth: .infinity)
+        } else {
+            frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private extension MenuNotice.Tone {
+    var tint: Color {
+        switch self {
+        case .info: .secondary
+        case .warning: .orange
+        case .critical: .red
+        }
+    }
+}
+
+private struct NoticeView: View {
+    let notice: MenuNotice
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: notice.symbol)
+                .foregroundStyle(notice.tone.tint)
+                .frame(width: 16)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(notice.text)
+                    .foregroundStyle(notice.tone == .info ? .secondary : .primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let action = notice.action {
+                    Button(action.title, action: action.perform)
+                        .controlSize(.small)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .font(.callout)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(background, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private var background: AnyShapeStyle {
+        notice.tone == .info ? AnyShapeStyle(.fill.quaternary) : AnyShapeStyle(notice.tone.tint.opacity(0.14))
+    }
+}
+
+private struct FooterButton: View {
+    let title: String
+    let shortcut: KeyEquivalent
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(title)
+                Text("⌘\(String(shortcut.character).uppercased())").foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .keyboardShortcut(shortcut, modifiers: .command)
     }
 }
 
