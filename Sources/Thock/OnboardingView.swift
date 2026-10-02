@@ -11,8 +11,8 @@ struct OnboardingView: View {
                     .resizable()
                     .frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Thock fait sonner votre clavier").font(.title2.bold())
-                    Text("Un son de clavier mécanique à chaque frappe, dans toutes les apps.")
+                    Text("Hear your keyboard with Thock").font(.title2.bold())
+                    Text("A mechanical keyboard sound on every keystroke, in every app.")
                         .foregroundStyle(.secondary)
                 }
             }
@@ -32,39 +32,39 @@ struct OnboardingView: View {
 
     private var permission: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Pour savoir quand une touche est enfoncée puis relâchée, Thock a besoin de la permission **Surveillance de l'entrée**.")
+            Text("To know when a key goes down and comes back up, Thock needs the **Input Monitoring** permission.")
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 6) {
-                Label("Thock ne lit pas ce que vous tapez et ne l'enregistre jamais.", systemImage: "eye.slash")
-                Label("Aucun accès réseau : rien ne quitte votre Mac.", systemImage: "wifi.slash")
-                Label("Pas besoin de l'Accessibilité.", systemImage: "checkmark.shield")
+                Label("Thock never reads or records what you type.", systemImage: "eye.slash")
+                Label("No network access: nothing leaves your Mac.", systemImage: "wifi.slash")
+                Label("No Accessibility access needed.", systemImage: "checkmark.shield")
             }
             .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 4) {
-                Text("1. Cliquez sur « Ouvrir les Réglages Système ».")
-                Text("2. Dans Confidentialité et sécurité > Surveillance de l'entrée, activez Thock.")
-                Text("3. Revenez ici : Thock détecte l'autorisation tout seul, sans relance.")
+                Text("1. Click “Open System Settings”.")
+                Text("2. In Privacy & Security > Input Monitoring, turn on Thock.")
+                Text("3. Come back here: Thock notices the permission by itself, no relaunch needed.")
             }
             .fixedSize(horizontal: false, vertical: true)
             HStack {
-                Button("Ouvrir les Réglages Système") { model.requestPermission() }
+                Button("Open System Settings") { model.requestPermission() }
                     .keyboardShortcut(.defaultAction)
                 Spacer()
                 ProgressView().controlSize(.small)
-                Text("En attente de l'autorisation…").foregroundStyle(.secondary)
+                Text("Waiting for permission…").foregroundStyle(.secondary)
             }
         }
     }
 
     private var ready: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("C'est prêt : tapez, Thock vous entend.", systemImage: "checkmark.circle.fill")
+            Label("All set: start typing and Thock will play along.", systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
-            Text("Thock vit dans la barre des menus. Le raccourci \(model.hotKey.displayString) l'active ou le coupe.")
+            Text("Thock lives in the menu bar. Press \(model.hotKey.displayString) to turn it on or off.")
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
-                Button("Fermer") { model.windows.close(.onboarding) }
+                Button("Close") { model.windows.close(.onboarding) }
                     .keyboardShortcut(.defaultAction)
             }
         }
@@ -72,10 +72,10 @@ struct OnboardingView: View {
 
     private var failed: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("La permission est accordée, mais la capture n'a pas démarré.", systemImage: "exclamationmark.triangle")
+            Label("Permission is granted, but capture didn't start.", systemImage: "exclamationmark.triangle")
             HStack {
                 Spacer()
-                Button("Relancer Thock") { model.relaunch() }
+                Button("Relaunch Thock") { model.relaunch() }
                     .keyboardShortcut(.defaultAction)
             }
         }

@@ -10,17 +10,17 @@ struct HotKeyRecorder: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Button(monitor == nil ? model.hotKey.displayString : "Tapez le raccourci…") {
+                Button(monitor == nil ? model.hotKey.displayString : "Type Shortcut…") {
                     monitor == nil ? start() : stop()
                 }
                 .frame(minWidth: 140)
-                Button("Par défaut") { model.setHotKey(.defaultToggle) }
+                Button("Default") { model.setHotKey(.defaultToggle) }
                     .disabled(model.hotKey == .defaultToggle || monitor != nil)
             }
             if let message = rejection ?? model.hotKeyError {
                 Text(message).font(.caption).foregroundStyle(.red)
             } else if monitor != nil {
-                Text("Échap pour annuler.").font(.caption).foregroundStyle(.secondary)
+                Text("Press Esc to cancel.").font(.caption).foregroundStyle(.secondary)
             }
         }
         .onDisappear { stop() }
@@ -40,7 +40,7 @@ struct HotKeyRecorder: View {
                 stop()
                 model.setHotKey(combo)
             case .failure(.needsCommandOrControl):
-                rejection = "Le raccourci doit contenir ⌘ ou ⌃."
+                rejection = "The shortcut must include ⌘ or ⌃."
             }
             return nil
         }

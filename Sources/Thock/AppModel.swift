@@ -227,7 +227,7 @@ final class AppModel {
         let hotKeyRegistration = HotKey { [weak self] in self?.enabled.toggle() }
         self.hotKeyRegistration = hotKeyRegistration
         if !hotKeyRegistration.register(hotKey) {
-            hotKeyError = "Le raccourci \(hotKey.displayString) est déjà pris par une autre app."
+            hotKeyError = "The shortcut \(hotKey.displayString) is already taken by another app."
         }
 
         if let benchDuration {
@@ -251,11 +251,11 @@ final class AppModel {
     }
 
     func showOnboarding() {
-        windows.show(.onboarding, title: "Bienvenue dans Thock") { OnboardingView(model: self) }
+        windows.show(.onboarding, title: "Welcome to Thock") { OnboardingView(model: self) }
     }
 
     func showSettings() {
-        windows.show(.settings, title: "Réglages de Thock") { SettingsView(model: self) }
+        windows.show(.settings, title: "Thock Settings") { SettingsView(model: self) }
     }
 
     func requestPermission() {
@@ -322,7 +322,7 @@ final class AppModel {
     func setHotKey(_ combo: KeyCombo) -> Bool {
         guard let hotKeyRegistration else { return false }
         guard hotKeyRegistration.register(combo) else {
-            hotKeyError = "\(combo.displayString) est déjà utilisé par une autre app ou par macOS."
+            hotKeyError = "\(combo.displayString) is already in use by another app or by macOS."
             hotKeyRegistration.register(hotKey)
             return false
         }
@@ -417,8 +417,8 @@ final class AppModel {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.application]
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.prompt = "Exclure"
-        panel.message = "Thock se taira quand cette app est au premier plan."
+        panel.prompt = "Exclude"
+        panel.message = "Thock stays silent while this app is frontmost."
         NSApp.activate()
         guard panel.runModal() == .OK, let url = panel.url,
               let bundleID = Bundle(url: url)?.bundleIdentifier else { return }
@@ -475,7 +475,7 @@ final class AppModel {
                     packID = fallback
                 }
                 let reason = (error as? PackLoaderError).flatMap { PackImportError.invalid($0).errorDescription } ?? error.localizedDescription
-                packError = "Le pack « \(name) » n'a pas pu être chargé. \(reason)"
+                packError = "The pack “\(name)” couldn't be loaded. \(reason)"
             }
         }
     }

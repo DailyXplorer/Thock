@@ -1,6 +1,7 @@
 name: Thock
 options:
   bundleIdPrefix: io.github.dailyxplorer
+  developmentLanguage: en
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
