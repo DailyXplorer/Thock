@@ -13,7 +13,7 @@ public final class TypingBench: @unchecked Sendable {
     public init(ring: EventRing, wake: DispatchSourceUserDataAdd) {
         self.ring = ring
         self.wake = wake
-        timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "io.github.dailyxplorer.thock.bench", qos: .userInteractive))
+        timer = DispatchSource.makeTimerSource(queue: DispatchQueue(label: "\(AppIdentity.subsystem).bench", qos: .userInteractive))
     }
 
     public func start(duration: Double, completion: @escaping @Sendable () -> Void) {
