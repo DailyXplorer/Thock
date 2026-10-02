@@ -186,6 +186,27 @@ struct AudioEngineTests {
         #expect(withRelease > tailOnly * 2)
     }
 
+    @Test func switchingPacksKeepsTheOldOneUntilAQueuedReleaseHasPlayed() throws {
+        let tone = (0..<72_000).map { Float(sin(Double($0) * 2 * .pi * 440 / 48_000) * 0.5) }
+        let long = try PackLoader.load(directory: Fixtures.temporaryPack(files: ["alpha_down_1.caf": tone, "alpha_up_1.caf": tone]))
+        let rig = try OfflineRig()
+        rig.audio.setPack(long)
+        rig.play(SoundTrigger(category: .modifier, direction: .down, column: 0.1, row: 3, timing: .immediate))
+        rig.play(SoundTrigger(category: .modifier, direction: .up, column: 0.1, row: 3, timing: .afterPress))
+        weak let retired = rig.pack
+        #expect(retired?.id == long.id)
+        rig.audio.setPack(try PackLoader.load(directory: Fixtures.bundledPack("holypanda")))
+        rig.sync()
+
+        Thread.sleep(forTimeInterval: 2.8)
+        #expect(retired != nil, "the release voice still reads the old pack until about 2.9 s")
+        let deadline = Date(timeIntervalSinceNow: 2.5)
+        while retired != nil, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        #expect(retired == nil)
+    }
+
     @Test func spatializationPansByColumn() throws {
         func channelPeaks(spatial: Bool) throws -> (left: Float, right: Float) {
             let rig = try OfflineRig()

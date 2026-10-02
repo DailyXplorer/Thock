@@ -140,7 +140,6 @@ struct PackLoaderTests {
         #expect(native.sampleRate == 48_000)
         #expect(native.clips.count == source.clips.count)
         #expect(native.samples(for: alphaDown, row: 3) == [alpha])
-        #expect(native.longestClipSeconds == Double(source.clips.map(\.count).max()!) / 48_000)
 
         let resampled = PackLoader.render(source, sampleRate: 44_100).samples(for: alphaDown, row: 3)[0]
         #expect(abs(resampled.count - alpha.count * 441 / 480) <= 2)

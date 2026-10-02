@@ -56,6 +56,8 @@ public final class AudioEngine: @unchecked Sendable {
     private var lastPick = ContiguousArray<Int>(repeating: -1, count: SoundKey.count)
     private var random: RandomSource
     private var lastSoundEnd: UInt64 = 0
+    // Latest host time a queued voice may still read the current pack's samples; a retired pack lives past it.
+    private var voicesEnd: UInt64 = 0
     private var spatial = true
     private var mouseSounds = false
     private var selectedOutput: String?
@@ -113,7 +115,9 @@ public final class AudioEngine: @unchecked Sendable {
             self.source = source
             let sampleRate = self.outputSampleRate
             if let retired = self.pack {
-                self.queue.asyncAfter(deadline: .now() + retired.longestClipSeconds + 1) { withExtendedLifetime(retired) {} }
+                let now = HostClock.now
+                let playing = self.voicesEnd > now ? HostClock.nanoseconds(self.voicesEnd - now) : 0
+                self.queue.asyncAfter(deadline: .now() + .nanoseconds(Int(playing)) + 1) { withExtendedLifetime(retired) {} }
             }
             self.pack = PackLoader.render(source, sampleRate: sampleRate > 0 ? sampleRate : PackSource.sampleRate)
             self.lastPick.withUnsafeMutableBufferPointer { $0.update(repeating: -1) }
@@ -189,14 +193,16 @@ public final class AudioEngine: @unchecked Sendable {
 
         let variation = trigger.direction == .down ? Variation.press : Variation.release
         let rate = 1 + random.spread(variation.rate)
+        let duration = HostClock.ticks(nanoseconds: UInt64(Double(clip.count) / Double(rate) / pack.sampleRate * 1e9))
         let start: UInt64
         switch trigger.timing {
         case .immediate:
             start = timestampValid ? eventTimestamp : now
-            lastSoundEnd = start &+ HostClock.ticks(nanoseconds: UInt64(Double(clip.count) / Double(rate) / pack.sampleRate * 1e9))
+            lastSoundEnd = start &+ duration
         case .afterPress:
             start = lastSoundEnd
         }
+        voicesEnd = max(voicesEnd, max(start, now) &+ duration)
         let pan = spatial ? (trigger.column * 2 - 1) * 0.6 : 0
         let queued = sampler.play(VoiceCommand(
             samples: clip.samples, eventTime: start, length: UInt32(clip.count), rate: rate,
