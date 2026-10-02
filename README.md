@@ -1,218 +1,220 @@
 # Thock
 
-Thock joue un son de clavier mécanique à chaque frappe, dans toutes les apps du Mac. L'app vit dans la barre des menus. Elle n'a ni fenêtre principale ni icône dans le Dock.
+Thock plays a mechanical keyboard sound on every keystroke, in every app on your Mac. It lives in the menu bar. It has no main window and no Dock icon.
 
-- macOS 14 ou plus récent, Swift 6, SwiftUI et AppKit, aucune dépendance tierce.
-- App Sandbox et Hardened Runtime activés.
-- Une seule permission : **Surveillance de l'entrée**. Thock ne demande jamais l'Accessibilité.
-- Aucun accès réseau. Aucune frappe n'est stockée ni journalisée.
+- macOS 14 or later, Swift 6, SwiftUI and AppKit, no third-party dependencies.
+- App Sandbox and Hardened Runtime enabled.
+- A single permission: **Input Monitoring**. Thock never asks for Accessibility.
+- No network access. No keystroke is stored or logged.
 
 ## Installation
 
-Prérequis : Xcode 27 et XcodeGen (`brew install xcodegen`).
+Requirements: Xcode 27 and XcodeGen (`brew install xcodegen`).
 
 ```sh
-make build              # génère Thock.xcodeproj, compile et signe ; build/Thock.app pointe vers le produit
-make run                # compile, arrête l'instance en cours, lance build/Thock.app
-make test               # tests unitaires (Swift Testing)
-make reset-permissions  # oublie la permission Surveillance de l'entrée (tccutil), le seul endroit qui touche à TCC
+make build              # generates Thock.xcodeproj, builds and signs; build/Thock.app points to the product
+make run                # builds, stops the running instance, launches build/Thock.app
+make test               # unit tests (Swift Testing)
+make reset-permissions  # forgets the Input Monitoring permission (tccutil), the only place that touches TCC
 ```
 
-Autres cibles :
+Other targets:
 
-| Cible | Rôle |
+| Target | Purpose |
 |---|---|
-| `make stop` | Quitte Thock. |
-| `make logs [SINCE=2m]` | Journal de Thock, décisions TCC et refus de la sandbox qui le concernent. Aucun keycode n'y figure. |
-| `make verify-signature` | Vérifie la signature, les entitlements et la designated requirement. |
-| `make cpu [IDLE=20 BENCH=20]` | CPU au repos puis pendant le banc de frappe synthétique (`BENCH=0` : repos seul, aucun son). |
-| `make latency` | Lance Thock avec l'histogramme de latence actif (menu > Diagnostics). |
-| `make probe` / `make probe-hid` | Journalise type, `stateID` et PID de chaque événement (jamais le keycode). La seconde compare avec un tap HID. |
-| `make render [PACK=mxblue LABEL=after]` | Rend hors ligne une séquence de frappe rapide (100 puis 140 mots/min, touches qui se chevauchent, rafale de Retour arrière, cinq touches à la fois) avec le vrai moteur audio. Écrit `build/renders/LABEL_PACK.wav` (48 kHz, lien vers le DerivedData, hors iCloud) et affiche crête, échantillons écrêtés, sons coupés et écart de timing. |
-| `make preview [PACK=cream]` | Joue avec `afplay` quelques frappes d'un pack embarqué (lettres sur plusieurs rangées, espace, entrée), sans lancer Thock. Par défaut `holypanda`. |
-| `make packs` | Retélécharge les enregistrements kbsim et réécrit les fichiers des packs embarqués qui ont changé. Seul ce script accède au réseau, jamais l'app. |
-| `make icon` | Régénère l'icône de l'app. |
-| `make clean` | Supprime le projet généré et le DerivedData. |
+| `make stop` | Quits Thock. |
+| `make logs [SINCE=2m]` | Thock's log, plus the TCC decisions and sandbox denials that concern it. No keycode ever appears in it. |
+| `make verify-signature` | Checks the signature, the entitlements and the designated requirement. |
+| `make cpu [IDLE=20 BENCH=20]` | CPU at idle, then during the synthetic typing benchmark (`BENCH=0`: idle only, no sound). |
+| `make latency` | Launches Thock with the latency histogram on (menu > Diagnostics). |
+| `make probe` / `make probe-hid` | Logs the type, `stateID` and PID of each event (never the keycode). The second one compares with an HID tap. |
+| `make render [PACK=mxblue LABEL=after]` | Renders a fast typing sequence offline (100 then 140 words/min, overlapping keys, a Backspace burst, five keys at once) with the real audio engine. Writes `build/renders/LABEL_PACK.wav` (48 kHz, a link into DerivedData, outside iCloud) and prints the peak, clipped samples, cut sounds and timing error. |
+| `make preview [PACK=cream]` | Plays a few keystrokes from a bundled pack with `afplay` (letters on several rows, space, return), without launching Thock. Defaults to `holypanda`. |
+| `make packs` | Downloads the kbsim recordings again and rewrites the bundled pack files that changed. Only this script touches the network, never the app. |
+| `make icon` | Regenerates the app icon. |
+| `make clean` | Deletes the generated project and DerivedData. |
 
-Le DerivedData vit dans `~/Library/Developer/Xcode/DerivedData/Thock-make`, hors de `~/Documents`. Sous `~/Documents` synchronisé, le bundle reçoit des attributs étendus et `codesign` échoue. `build/Thock.app` est un lien symbolique stable vers le produit. `make run` lance toujours ce chemin, si bien que TCC ne garde qu'une entrée.
+DerivedData lives in `~/Library/Developer/Xcode/DerivedData/Thock-make`, outside `~/Documents`. Under a synced `~/Documents`, the bundle picks up extended attributes and `codesign` fails. `build/Thock.app` is a stable symbolic link to the product. `make run` always launches that path, so TCC keeps a single entry.
 
-## Permission Surveillance de l'entrée
+## Input Monitoring permission
 
-Au premier lancement, Thock ouvre une fenêtre d'accueil qui explique la permission. Le bouton « Ouvrir les Réglages Système » inscrit Thock dans la liste (`CGRequestListenEventAccess`), puis ouvre directement le panneau Confidentialité et sécurité > Surveillance de l'entrée (`x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent`). Il reste à activer Thock.
+On first launch, Thock opens a welcome window that explains the permission. The “Open System Settings” button adds Thock to the list (`CGRequestListenEventAccess`), then opens the Privacy & Security > Input Monitoring pane directly (`x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent`). All that is left is to turn Thock on.
 
-Thock interroge `CGPreflightListenEventAccess()` une fois par seconde tant que la permission manque. Dès qu'elle est accordée, la capture démarre, sans relance. Le tap n'est créé qu'après un preflight positif. Sans cela, `tapCreate` afficherait l'invite système avant l'explication.
+Thock polls `CGPreflightListenEventAccess()` once per second while the permission is missing. As soon as it is granted, capture starts, without a relaunch. The tap is only created after a positive preflight. Otherwise, `tapCreate` would show the system prompt before the explanation.
 
-Si la permission est retirée pendant que Thock tourne, le watchdog du tap (toutes les 3 s) le détecte. Thock arrête alors le tap, oublie les touches tenues et rouvre la fenêtre d'accueil. Quand la permission revient, la capture redémarre seule.
+If the permission is revoked while Thock runs, the tap watchdog (every 3 s) detects it. Thock then stops the tap, forgets the held keys and reopens the welcome window. When the permission comes back, capture restarts by itself.
 
-## Signature
+## Signing
 
-TCC rattache la permission Surveillance de l'entrée à la designated requirement de l'app. Il faut donc signer chaque build avec la même identité stable. Avec un certificat, la requirement a cette forme :
+TCC ties the Input Monitoring permission to the app's designated requirement. So every build must be signed with the same stable identity. With a certificate, the requirement looks like this:
 
 ```
-identifier "io.github.dailyxplorer.thock" and certificate leaf = H"<SHA1 du certificat>"
+identifier "io.github.dailyxplorer.thock" and certificate leaf = H"<certificate SHA1>"
 ```
 
-Elle ne dépend que du bundle id et du certificat, donc elle reste la même d'un build à l'autre : on accorde la permission une fois, et elle survit aux rebuilds. `make verify-signature` l'affiche.
+It only depends on the bundle id and the certificate, so it stays the same from one build to the next: you grant the permission once, and it survives rebuilds. `make verify-signature` prints it.
 
-**Par défaut : signature ad hoc.** `Config/Signing.xcconfig`, suivi par git, signe ad hoc (`CODE_SIGN_IDENTITY = -`) pour que le projet compile sans configuration. Une signature ad hoc n'a pas de certificat. Sa designated requirement est le `cdhash`, l'empreinte du binaire, qui change à chaque compilation. macOS considère alors chaque build comme une nouvelle app et redemande la permission. Pour un usage suivi, renseigner une identité stable.
+**Default: ad hoc signing.** `Config/Signing.xcconfig`, tracked by git, signs ad hoc (`CODE_SIGN_IDENTITY = -`) so the project builds without any setup. An ad hoc signature has no certificate. Its designated requirement is the `cdhash`, the fingerprint of the binary, which changes on every build. macOS then treats each build as a new app and asks for the permission again. For regular use, set a stable identity.
 
-**Renseigner son identité.** Copier `Config/Signing.local.xcconfig.example` vers `Config/Signing.local.xcconfig`. Ce fichier est ignoré par git et inclus par `Config/Signing.xcconfig` (`#include?`). Deux choix :
+**Setting your identity.** Copy `Config/Signing.local.xcconfig.example` to `Config/Signing.local.xcconfig`. This file is ignored by git and included by `Config/Signing.xcconfig` (`#include?`). Two options:
 
-- **Certificat auto-signé.** Ouvrir Trousseau d'accès > Assistant de certification > Créer un certificat. Choisir un nom, le type d'identité « Racine auto-signée » et le type de certificat « Signature de code ». Relever ensuite son SHA1 avec `security find-identity -v -p codesigning`, et le mettre dans `CODE_SIGN_IDENTITY` :
+- **Self-signed certificate.** Open Keychain Access > Certificate Assistant > Create a Certificate. Pick a name, the identity type “Self-Signed Root” and the certificate type “Code Signing”. Then read its SHA1 with `security find-identity -v -p codesigning`, and put it in `CODE_SIGN_IDENTITY`:
 
   ```
   CODE_SIGN_STYLE = Manual
-  CODE_SIGN_IDENTITY = <SHA1 du certificat>
+  CODE_SIGN_IDENTITY = <certificate SHA1>
   DEVELOPMENT_TEAM =
   OTHER_CODE_SIGN_FLAGS = --timestamp=none
   ```
 
-  Référencer le certificat par son SHA1 plutôt que par son nom évite toute ambiguïté si deux certificats portent le même nom.
+  Referencing the certificate by its SHA1 rather than its name avoids any ambiguity if two certificates share the same name.
 
-- **Apple Development.** Avec un compte développeur dans Xcode :
+- **Apple Development.** With a developer account in Xcode:
 
   ```
   CODE_SIGN_STYLE = Manual
   CODE_SIGN_IDENTITY = Apple Development
-  DEVELOPMENT_TEAM = <identifiant d'équipe>
+  DEVELOPMENT_TEAM = <team identifier>
   OTHER_CODE_SIGN_FLAGS = --timestamp=none
   ```
 
-On peut aussi surcharger ponctuellement :
+You can also override it for a single build:
 
 ```sh
 make build CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM=XXXXXXXXXX
 ```
 
-**Aucune invite de mot de passe.** Quand l'accès à la clé est autorisé pour `codesign`, la signature ne demande pas de mot de passe. L'app n'accède jamais au trousseau, et le build n'en crée ni n'en déverrouille aucun.
+**No password prompt.** When access to the key is allowed for `codesign`, signing doesn't ask for a password. The app never touches the keychain, and the build neither creates nor unlocks one.
 
-Changer d'identité change la designated requirement : il faut accorder la permission une dernière fois, éventuellement après `make reset-permissions`.
+Changing identity changes the designated requirement: you have to grant the permission one last time, possibly after `make reset-permissions`.
 
-## Utilisation
+**Upgrading from an earlier build.** The bundle id changed to `io.github.dailyxplorer.thock`, so macOS sees an existing install as a different app: run `make reset-permissions` and grant Input Monitoring again. Settings and imported packs from the old id are not carried over.
 
-**Menu de la barre des menus.** L'icône est un clavier. Elle devient un haut-parleur barré en sourdine, et un clavier avec des points de suspension tant que la permission manque. Le menu contient :
+## Usage
 
-- l'interrupteur On/Off et la raison de la sourdine en cours (coupé, micro utilisé, app exclue au premier plan, sortie système muette) ;
-- un indicateur discret quand la saisie sécurisée est active (`IsSecureEventInputEnabled()`, lu toutes les 2 s avec une tolérance de 1 s) ;
-- le volume, le pack, la sortie audio (défaut du système ou un périphérique précis), la spatialisation et les sons de la souris ;
-- l'option « Inclure les frappes synthétiques » et « Lancer au démarrage » (`SMAppService.mainApp`) ;
-- les diagnostics, repliés par défaut : compteurs sans keycode, état audio et mesure de latence.
+**Menu bar menu.** The icon is a keyboard. It turns into a crossed-out speaker while muted, and a keyboard with an ellipsis while the permission is missing. The menu contains:
 
-**Raccourci global.** ⌃⌥⌘K active ou coupe Thock par défaut. Il passe par Carbon `RegisterEventHotKey`, sans permission. On le change dans Réglages > Général : cliquer, puis taper la combinaison, ou Échap pour annuler. Le raccourci doit contenir ⌘ ou ⌃, car macOS 15 refuse les combinaisons de ⌥ ou ⌥⇧ seules. Si une autre app possède déjà la combinaison, Thock garde l'ancienne et l'indique.
+- the On/Off switch and the current mute reason (turned off, microphone in use, excluded app frontmost, system output muted);
+- a discreet indicator when secure input is on (`IsSecureEventInputEnabled()`, read every 2 s with a 1 s tolerance);
+- the volume, the pack, the audio output (system default or a specific device), spatialization and mouse sounds;
+- the “Include Synthetic Keystrokes” and “Launch at Login” options (`SMAppService.mainApp`);
+- diagnostics, collapsed by default: keycode-free counters, audio state and latency measurement.
 
-**Sourdine automatique** (Réglages > Sourdine). Chaque règle se désactive séparément :
+**Global shortcut.** By default, ⌃⌥⌘K turns Thock on or off. It goes through Carbon `RegisterEventHotKey`, with no permission. Change it in Settings > General: click, then type the combination, or press Esc to cancel. The shortcut must include ⌘ or ⌃, because macOS 15 rejects combinations of ⌥ or ⌥⇧ alone. If another app already owns the combination, Thock keeps the previous one and says so.
 
-- **Micro utilisé.** Un listener sur `kAudioDevicePropertyDeviceIsRunningSomewhere` de l'entrée par défaut, réabonné quand l'entrée par défaut change. Cette propriété couvre les deux sens d'un périphérique. Quand l'entrée est aussi la sortie de Thock (AirPods, casque USB), elle serait toujours vraie à cause de Thock lui-même. Dans ce cas, Thock demande à chaque processus audio s'il enregistre (`kAudioProcessPropertyIsRunningInput`, macOS 14.2+). Aucun flux d'entrée n'est jamais ouvert.
-- **App exclue au premier plan.** Une liste de bundle ids, alimentée depuis les apps ouvertes ou par la sélection d'un `.app`. Thock suit `NSWorkspace.didActivateApplicationNotification`. Ouvrir le menu ou les réglages de Thock ne lève pas la sourdine de l'app placée dessous.
-- **Sortie système muette.** La sourdine de la sortie par défaut, suivie par un listener Core Audio.
+**Automatic mute** (Settings > Mute). Each rule can be turned off separately:
 
-Pendant une sourdine, l'engine audio continue de tourner et la machine à états de suivre les touches. Le retour du son ne coûte rien et aucun relâchement fantôme n'est joué.
+- **Microphone in use.** A listener on `kAudioDevicePropertyDeviceIsRunningSomewhere` of the default input, re-subscribed when the default input changes. This property covers both directions of a device. When the input is also Thock's output (AirPods, USB headset), it would always be true because of Thock itself. In that case, Thock asks each audio process whether it is recording (`kAudioProcessPropertyIsRunningInput`, macOS 14.2+). No input stream is ever opened.
+- **Excluded app frontmost.** A list of bundle ids, filled from the open apps or by choosing an `.app`. Thock follows `NSWorkspace.didActivateApplicationNotification`. Opening Thock's menu or settings doesn't lift the mute for the app underneath.
+- **System output muted.** The mute state of the default output, tracked by a Core Audio listener.
 
-Tous les réglages sont persistés dans `UserDefaults`.
+While muted, the audio engine keeps running and the state machine keeps tracking keys. Unmuting costs nothing and no phantom release is played.
 
-## Format des packs
+All settings are persisted in `UserDefaults`.
 
-Un pack est un dossier :
+## Pack format
+
+A pack is a folder:
 
 ```
-MonPack/
-├── pack.json            {"name": "Mon pack", "author": "Moi", "license": "CC-BY-4.0", "source": "https://…"}
-├── alpha_down_r0.caf    rangée 0 : Échap et touches F
-├── alpha_down_r1.caf    rangée 1 : chiffres
-├── alpha_down_r2.caf    rangée 2 : Tab, A Z E R T Y (Q W E R T Y)
-├── alpha_down_r3.caf    rangée 3 : Verr. Maj, Q S D F (A S D F), Entrée
-├── alpha_down_r4.caf    rangée 4 : Maj, W X C V (Z X C V), puis espace, ⌘ ⌥ ⌃ et flèches
+MyPack/
+├── pack.json            {"name": "My pack", "author": "Me", "license": "CC-BY-4.0", "source": "https://…"}
+├── alpha_down_r0.caf    row 0: Esc and function keys
+├── alpha_down_r1.caf    row 1: digits
+├── alpha_down_r2.caf    row 2: Tab, Q W E R T Y (A Z E R T Y)
+├── alpha_down_r3.caf    row 3: Caps Lock, A S D F (Q S D F), Return
+├── alpha_down_r4.caf    row 4: Shift, Z X C V (W X C V), then space, ⌘ ⌥ ⌃ and arrows
 ├── alpha_up_1.caf
 ├── space_down_1.wav
 └── …
 ```
 
-- Noms de fichiers, au choix :
-  - `catégorie_direction_variante` : `alpha_down_1.caf`, joué sur toutes les rangées ;
-  - `catégorie_direction_rRANGÉE` ou `catégorie_direction_rRANGÉE_variante` : `alpha_down_r2.caf`, `alpha_down_r2_3.wav`, joué sur cette rangée seulement.
-- Extensions : `caf`, `wav`, `aiff`, `aif`. `source` est facultatif dans `pack.json`.
-- Catégories : `alpha` (lettres et chiffres), `space`, `enter`, `backspace`, `tab`, `modifier`, `arrow`, `punctuation` et `mouse`. Directions : `down` pour la pression, `up` pour le relâchement.
-- Rangées : la rangée physique de la touche, déduite de son keycode virtuel, donc identique en AZERTY, QWERTY et ISO. La touche `<` de l'ISO (keycode 10) est en rangée 4. Le découpage suit kbsim, où la rangée de l'espace partage l'échantillon de la rangée 4.
-- Pour une touche, Thock prend les fichiers de sa rangée, sinon les variantes sans rangée, sinon la rangée enregistrée la plus proche. Une catégorie sans aucun fichier reprend `alpha` de la même direction, pour la même rangée. Un pack au format `alpha_down_1.caf` sans rangée fonctionne donc comme avant.
-- Il faut au moins un fichier `alpha_down`, avec ou sans rangée.
-- Au chargement, Thock mixe en mono et rééchantillonne. Il coupe ensuite chaque fichier 1 ms avant le premier échantillon à 20 dB sous sa propre crête, et après le dernier à 45 dB sous elle. De courts fondus évitent les clics aux deux coupures. Enfin, il normalise le pack entier à -1 dBFS crête. Le seuil est relatif parce que les enregistrements ont jusqu'à 20 dB d'écart de niveau entre eux et un bruit de fond MP3 vers -50 dBFS : un seuil absolu se déclenchait sur le bruit et laissait jusqu'à 20 ms de silence avant l'attaque. Un seul gain pour tout le pack garde les écarts voulus, par exemple une espace plus forte qu'une lettre.
-- Chaque frappe varie en continu : vitesse de lecture à ±1,5 % (±2,5 % pour un relâchement), gain entre -2,5 dB et le niveau enregistré (-4 dB pour un relâchement), et une part du son adoucie par un passe-bas à 3 kHz, jusqu'à 30 % (60 % pour un relâchement). Les relâchements varient davantage parce que kbsim n'en a qu'un fichier par switch. Quand une touche a plusieurs fichiers, elle n'en joue jamais deux fois de suite le même.
+- File names, either:
+  - `category_direction_variant`: `alpha_down_1.caf`, played on every row;
+  - `category_direction_rROW` or `category_direction_rROW_variant`: `alpha_down_r2.caf`, `alpha_down_r2_3.wav`, played on that row only.
+- Extensions: `caf`, `wav`, `aiff`, `aif`. `source` is optional in `pack.json`.
+- Categories: `alpha` (letters and digits), `space`, `enter`, `backspace`, `tab`, `modifier`, `arrow`, `punctuation` and `mouse`. Directions: `down` for the press, `up` for the release.
+- Rows: the physical row of the key, derived from its virtual keycode, so it is the same on AZERTY, QWERTY and ISO. The ISO `<` key (keycode 10) is on row 4. The split follows kbsim, where the space row shares the row 4 sample.
+- For a key, Thock takes the files for its row, otherwise the variants without a row, otherwise the nearest recorded row. A category with no file at all falls back to `alpha` in the same direction, for the same row. A pack in the row-less `alpha_down_1.caf` format therefore works as before.
+- At least one `alpha_down` file is required, with or without a row.
+- On load, Thock mixes to mono and resamples. It then trims each file 1 ms before the first sample at 20 dB below its own peak, and after the last one at 45 dB below it. Short fades avoid clicks at both cuts. Finally, it normalizes the whole pack to -1 dBFS peak. The threshold is relative because the recordings differ in level by up to 20 dB and have an MP3 noise floor around -50 dBFS: an absolute threshold triggered on the noise and left up to 20 ms of silence before the attack. A single gain for the whole pack keeps the intended differences, for example a space bar louder than a letter.
+- Every keystroke varies continuously: playback speed within ±1.5 % (±2.5 % for a release), gain between -2.5 dB and the recorded level (-4 dB for a release), and part of the sound softened by a 3 kHz low-pass, up to 30 % (60 % for a release). Releases vary more because kbsim only has one file per switch for them. When a key has several files, it never plays the same one twice in a row.
 
-**Import.** Glisser le dossier sur la liste de Réglages > Packs, ou cliquer « Importer un dossier… » (sandbox : accès en lecture au seul dossier choisi). Thock copie `pack.json` et les fichiers audio reconnus dans `~/Library/Containers/io.github.dailyxplorer.thock/Data/Library/Application Support/Packs/`. Il décode ensuite la copie : un pack qui ne jouerait pas est refusé avec la raison, et rien ne reste sur le disque. Le pack importé est listé avec les packs embarqués, puis sélectionné. Un pack importé se supprime depuis la même liste.
+**Import.** Drag the folder onto the list in Settings > Packs, or click “Import Folder…” (sandbox: read access to the chosen folder only). Thock copies `pack.json` and the recognized audio files into `~/Library/Containers/io.github.dailyxplorer.thock/Data/Library/Application Support/Packs/`. It then decodes the copy: a pack that wouldn't play is rejected with the reason, and nothing stays on disk. The imported pack is listed with the bundled packs, then selected. An imported pack can be deleted from the same list.
 
-**Packs embarqués.** Ce sont de vrais enregistrements de switches mécaniques, tirés de kbsim (voir Crédits) et convertis par `make packs` en CAF mono 16 bits à 48 kHz :
+**Bundled packs.** These are real mechanical switch recordings, taken from kbsim (see Credits) and converted by `make packs` to 16-bit mono CAF at 48 kHz:
 
-La dernière colonne donne la réputation de chaque switch, pas un jugement d'écoute : on compare avec `make preview PACK=<id>`.
+The last column gives each switch's reputation, not a listening verdict: compare them with `make preview PACK=<id>`.
 
-| Pack | Switch | Réputation |
+| Pack | Switch | Reputation |
 |---|---|---|
-| Holy Panda (par défaut) | tactile | bosse marquée, frappe ronde |
-| NovelKeys Cream | linéaire | feutré, grave, doux |
-| Cherry MX Brown | tactile léger | sec et discret, proche d'un clavier de bureau |
-| Cherry MX Black | linéaire lourd | net et franc |
-| Cherry MX Blue | clicky | clic aigu (kbsim n'a pas d'espace ni d'entrée dédiés : ces touches reprennent la rangée 4) |
-| Kailh Box Navy | clicky lourd | clic épais et sonore |
-| Alps SKCM Blue | clicky vintage | clic sec et métallique |
-| Topre | électrocapacitif | « thock » sourd et profond |
+| Holy Panda (default) | tactile | strong bump, round keystroke |
+| NovelKeys Cream | linear | muted, deep, smooth |
+| Cherry MX Brown | light tactile | dry and discreet, close to an office keyboard |
+| Cherry MX Black | heavy linear | crisp and clean |
+| Cherry MX Blue | clicky | high-pitched click (kbsim has no dedicated space or return: these keys reuse row 4) |
+| Kailh Box Navy | heavy clicky | thick, loud click |
+| Alps SKCM Blue | vintage clicky | dry, metallic click |
+| Topre | electro-capacitive | deep, muffled “thock” |
 
-Chaque pack a un échantillon de pression par rangée, un relâchement générique, et des fichiers dédiés pour l'espace, Entrée et Retour arrière. Les autres touches (Tab, modificateurs, flèches, ponctuation) prennent l'échantillon de leur rangée, comme dans kbsim. Écartés pour garder des caractères distincts : `alpaca`, `turquoise`, `blackink` et `redink`, quatre linéaires de plus, et `buckling` (ressort à flambage IBM), un clicky de plus. Aucun fichier des huit packs retenus n'est défectueux : durée, crête et plancher de bruit ont été mesurés pour chacun.
+Each pack has one press sample per row, a generic release, and dedicated files for space, Return and Backspace. The other keys (Tab, modifiers, arrows, punctuation) use their row's sample, as in kbsim. Left out to keep the characters distinct: `alpaca`, `turquoise`, `blackink` and `redink`, four more linears, and `buckling` (IBM buckling spring), one more clicky. None of the files in the eight packs kept is defective: duration, peak and noise floor were measured for each one.
 
-## Choix techniques
+## Technical choices
 
-**`.cgSessionEventTap` plutôt que `.cghidEventTap`.**
+**`.cgSessionEventTap` rather than `.cghidEventTap`.**
 
-- Apple documente le tap listen-only sous sandbox avec la permission Surveillance de l'entrée. Le niveau session est le cas normal de cette combinaison. Le niveau HID a toujours été associé à root ou à l'Accessibilité.
-- Le tap session ne voit que la session de connexion. Après un changement rapide d'utilisateur, Thock n'entend pas l'autre session.
-- La saisie sécurisée est respectée sans rien faire.
-- L'écart de latence avec le niveau HID est supposé de l'ordre de la dizaine de µs, négligeable devant le tampon audio. Il n'est pas mesuré. `make probe-hid` permet de comparer.
+- Apple documents the listen-only tap under the sandbox with the Input Monitoring permission. The session level is the normal case for that combination. The HID level has always been associated with root or Accessibility.
+- The session tap only sees the login session. After fast user switching, Thock doesn't hear the other session.
+- Secure input is respected without doing anything.
+- The latency difference with the HID level is assumed to be in the tens of µs, negligible next to the audio buffer. It is not measured. `make probe-hid` lets you compare.
 
-**Chemin chaud.** Le callback du tap, sur un thread dédié avec sa runloop, copie quelques champs dans un ring SPSC en C11, sans allocation ni log. Il réveille ensuite la file audio par `DispatchSourceUserDataAdd`. Cette file filtre, réduit la machine à états et pousse une commande de 32 octets dans un second ring SPSC, sans changer de thread ni appeler AVFoundation. Le bloc de rendu d'un `AVAudioSourceNode` (`Sampler`) lit ce ring et mixe jusqu'à 32 voix. L'engine reste chaud. Le tampon IO est de 128 trames.
+**Hot path.** The tap callback, on a dedicated thread with its own run loop, copies a few fields into a C11 SPSC ring, without allocating or logging. It then wakes the audio queue through `DispatchSourceUserDataAdd`. That queue filters, reduces the state machine and pushes a 32-byte command into a second SPSC ring, without switching threads or calling AVFoundation. The render block of an `AVAudioSourceNode` (`Sampler`) reads that ring and mixes up to 32 voices. The engine stays warm. The IO buffer is 128 frames.
 
-**Échantillonneur maison plutôt que 32 `AVAudioPlayerNode`.** Mesuré avec `make render` : `scheduleBuffer(at: nil)` démarre le son au rendu suivant, ou un à deux cycles plus tard, au hasard d'une course interne. Le même instant de frappe ne donne pas le même départ d'un passage à l'autre. En frappe rapide, l'écart entre deux sons s'éloignait ainsi de jusqu'à 7 ms de l'écart entre les deux frappes. Programmer à la trame près demande un `AVAudioTime` par son, donc une allocation. Le `Sampler` place au contraire chaque son exactement un cycle plus 1 ms après sa frappe, par interpolation d'Hermite à vitesse variable. Il ne coupe une voix que si aucune n'est libre, et il prend alors celle à qui il reste le moins de son. Un limiteur sans anticipation garde la sortie sous -1 dBFS. Le bloc de rendu ne prend aucun verrou et n'alloue rien.
+**Custom sampler rather than 32 `AVAudioPlayerNode`s.** Measured with `make render`: `scheduleBuffer(at: nil)` starts the sound on the next render, or one to two cycles later, depending on an internal race. The same keystroke time doesn't give the same start from one run to the next. In fast typing, the gap between two sounds drifted by up to 7 ms from the gap between the two keystrokes. Scheduling to the exact frame needs one `AVAudioTime` per sound, hence an allocation. The `Sampler` instead places each sound exactly one cycle plus 1 ms after its keystroke, with variable-speed Hermite interpolation. It only steals a voice when none is free, and then takes the one with the least sound left. A limiter without lookahead keeps the output under -1 dBFS. The render block takes no lock and allocates nothing.
 
-## Mesures
+## Measurements
 
-Ordres de grandeur indicatifs, qui varient selon la machine et la sortie audio. Les outils pour les reproduire sont `make cpu`, `make latency` et `make render`.
+Rough orders of magnitude, which vary with the machine and the audio output. The tools to reproduce them are `make cpu`, `make latency` and `make render`.
 
-| Mesure | Ordre de grandeur |
+| Measurement | Order of magnitude |
 |---|---|
-| CPU au repos (app lancée, engine à 48 kHz, sans frappe) | ≈ 0 % |
-| CPU en frappe soutenue simulée (17 événements/s, `--bench-typing`) | ≈ 0 à 1 % |
-| Latence logicielle, timestamp du CGEvent → son programmé | p50 de quelques dizaines de µs, p99 sous 0,1 ms |
-| Frappe → départ du son, en rendu hors ligne à 128 trames | constant, un cycle plus 1 ms (≈ 3,7 ms), sans écart d'intervalle |
-| Latence de sortie annoncée par Core Audio | celle du périphérique : quelques ms en filaire, plus de 150 ms pour un casque Bluetooth |
-| Allocations dans notre code (drain du pipeline, 200 événements) | 0, vérifié par les tests |
+| CPU at idle (app running, engine at 48 kHz, no typing) | ≈ 0 % |
+| CPU under sustained simulated typing (17 events/s, `--bench-typing`) | ≈ 0 to 1 % |
+| Software latency, CGEvent timestamp → scheduled sound | p50 of a few tens of µs, p99 under 0.1 ms |
+| Keystroke → sound start, offline render at 128 frames | constant, one cycle plus 1 ms (≈ 3.7 ms), no interval drift |
+| Output latency reported by Core Audio | the device's: a few ms wired, over 150 ms for Bluetooth headphones |
+| Allocations in our code (pipeline drain, 200 events) | 0, checked by the tests |
 
-**Variation de hauteur.** Un `AVAudioUnitVarispeed` par voix a été essayé et abandonné : en rendu hors ligne, 32 voix au repos coûtaient plus de dix fois plus de CPU avec lui. Le `Sampler` fait varier la vitesse lui-même, par interpolation.
+**Pitch variation.** One `AVAudioUnitVarispeed` per voice was tried and dropped: in an offline render, 32 idle voices cost more than ten times as much CPU with it. The `Sampler` varies the speed itself, through interpolation.
 
-Le banc est synthétique : il pousse des événements dans le vrai ring sans passer par le tap. La latence perçue en filaire est estimée à environ 7 ms (3,7 ms d'avance du `Sampler`, plus un cycle de sortie et le périphérique). C'est une estimation, pas une mesure de bout en bout.
+The benchmark is synthetic: it pushes events into the real ring without going through the tap. The perceived wired latency is estimated at about 7 ms (the `Sampler`'s 3.7 ms lead, plus one output cycle and the device). This is an estimate, not an end-to-end measurement.
 
-## Limites connues
+## Known limitations
 
-- **Saisie sécurisée.** Dans un champ de mot de passe, ou quand une app active la saisie sécurisée (Terminal avec « Saisie sécurisée au clavier », certains gestionnaires de mots de passe), macOS ne transmet plus les frappes au tap. Thock se tait et le menu l'indique. C'est voulu, Thock ne la contourne pas.
-- **Bluetooth.** La latence est imposée par le casque (souvent plus de 150 ms annoncés par un casque Bluetooth). Aucun réglage de Thock n'y change rien. En filaire ou sur les haut-parleurs intégrés, le délai est de quelques ms.
-- **Allocations.** Rien n'alloue entre le tap et le ring du `Sampler`, ni dans son bloc de rendu : mesuré avec un hook `malloc_logger`. `renderOffline` d'AVAudioEngine alloue lui-même 2 blocs pour 64 cycles, qu'il y ait 12 voix à mixer ou aucune.
-- **Micro sur un périphérique partagé.** Quand l'entrée par défaut est aussi la sortie de Thock, la détection passe par les processus audio, ce qui demande macOS 14.2. Sur macOS 14.0 et 14.1, la règle ne se déclenche pas dans ce cas.
-- **Frappes synthétiques.** Le filtre garde `eventSourceStateID == 1` (état HID). C'est la valeur attendue pour le matériel. Elle reste à confirmer avec `make probe` sur chaque type de clavier et d'injecteur.
-- **Unité du timestamp CGEvent.** Elle est supposée en ticks `mach_absolute_time`. Le compteur « Horodatages hors horloge hôte » des diagnostics le vérifiera en frappe réelle. Si l'hypothèse est fausse, Thock joue quand même chaque son.
-- **Lancer au démarrage.** `SMAppService.mainApp` enregistre le bundle à son emplacement réel, ici dans le DerivedData. Après `make clean`, il faut réactiver l'option.
+- **Secure input.** In a password field, or when an app turns on secure input (Terminal with “Secure Keyboard Entry”, some password managers), macOS stops sending keystrokes to the tap. Thock goes silent and the menu says so. This is intended, Thock doesn't work around it.
+- **Bluetooth.** Latency is imposed by the headphones (Bluetooth headphones often report over 150 ms). No Thock setting changes that. Wired or on the built-in speakers, the delay is a few ms.
+- **Allocations.** Nothing allocates between the tap and the `Sampler`'s ring, nor in its render block: measured with a `malloc_logger` hook. AVAudioEngine's `renderOffline` itself allocates 2 blocks per 64 cycles, whether there are 12 voices to mix or none.
+- **Microphone on a shared device.** When the default input is also Thock's output, detection goes through the audio processes, which requires macOS 14.2. On macOS 14.0 and 14.1, the rule doesn't trigger in that case.
+- **Synthetic keystrokes.** The filter keeps `eventSourceStateID == 1` (HID state). That is the expected value for hardware. It still needs confirming with `make probe` on each kind of keyboard and injector.
+- **CGEvent timestamp unit.** It is assumed to be in `mach_absolute_time` ticks. The “Timestamps off the host clock” counter in Diagnostics will check this during real typing. If the assumption is wrong, Thock still plays every sound.
+- **Launch at Login.** `SMAppService.mainApp` registers the bundle at its actual location, here inside DerivedData. After `make clean`, you have to turn the option on again.
 
-## Confidentialité
+## Privacy
 
-- Thock reçoit des événements de clavier et de souris en écoute seule (`.listenOnly`). Il ne peut ni les modifier ni en injecter.
-- Seuls le type d'événement, le keycode, les modificateurs, l'auto-repeat, la source et l'horodatage sont copiés, puis oubliés après le son. Rien n'est écrit sur disque.
-- Aucun keycode n'est journalisé, même en mode sonde. `RawInputEvent` n'a pas de description textuelle.
-- Aucun entitlement réseau, aucune télémétrie.
-- Entitlements : `com.apple.security.app-sandbox` et `com.apple.security.files.user-selected.read-only` (import de packs, sélection d'une app à exclure). En Debug, Xcode ajoute `get-task-allow`. La lecture de l'état du micro fonctionne sans `com.apple.security.device.audio-input` : vérifié sous sandbox, sans aucune trace TCC dans le journal.
-- Les seules données persistées sont les réglages (`UserDefaults`) et les packs importés.
+- Thock receives keyboard and mouse events in listen-only mode (`.listenOnly`). It can neither modify nor inject them.
+- Only the event type, keycode, modifiers, auto-repeat flag, source and timestamp are copied, then forgotten after the sound. Nothing is written to disk.
+- No keycode is ever logged, even in probe mode. `RawInputEvent` has no text description.
+- No network entitlement, no telemetry.
+- Entitlements: `com.apple.security.app-sandbox` and `com.apple.security.files.user-selected.read-only` (pack import, choosing an app to exclude). In Debug, Xcode adds `get-task-allow`. Reading the microphone state works without `com.apple.security.device.audio-input`: checked under the sandbox, with no TCC trace in the log.
+- The only persisted data are the settings (`UserDefaults`) and the imported packs.
 
-## Dépannage
+## Troubleshooting
 
-- **La capture ne démarre pas alors que la permission est accordée.** Utiliser « Relancer Thock » dans le menu. Si la permission semble attachée à un ancien build, `make reset-permissions`, puis l'accorder de nouveau.
-- **Aucun son.** Regarder la raison de sourdine dans le menu, puis les diagnostics (« Audio arrêté » ou compteurs à zéro). `make logs` affiche l'état de l'engine.
-- **Tests manuels.** Voir [MANUAL_TESTS.md](MANUAL_TESTS.md).
+- **Capture doesn't start even though the permission is granted.** Use “Relaunch Thock” in the menu. If the permission seems tied to an old build, run `make reset-permissions`, then grant it again.
+- **No sound.** Check the mute reason in the menu, then the diagnostics (“Audio stopped” or counters stuck at zero). `make logs` shows the engine state.
+- **Manual tests.** See [MANUAL_TESTS.md](MANUAL_TESTS.md).
 
-## Crédits
+## Credits
 
-- **Sons des packs embarqués** : enregistrements de switches de [kbsim](https://github.com/tplai/kbsim) par Thomas Lai, sous licence MIT (dossier `src/assets/audio`). Thock les convertit en CAF mono à 48 kHz, puis les coupe et les normalise au chargement. Le découpage des échantillons par rangée de clavier reprend aussi celui de kbsim. Texte complet de la licence : [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
-- Thock n'utilise ni le nom, ni l'icône, ni les sons de Klack.
+- **Bundled pack sounds**: switch recordings from [kbsim](https://github.com/tplai/kbsim) by Thomas Lai, under the MIT license (`src/assets/audio` folder). Thock converts them to mono CAF at 48 kHz, then trims and normalizes them on load. The per-row split of the samples also follows kbsim. Full license text: [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
+- Thock uses neither the name, the icon nor the sounds of Klack.

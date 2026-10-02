@@ -1,71 +1,72 @@
-# Tests manuels
+# Manual tests
 
-À dérouler sur un build `make run`, menu de Thock ouvert quand un compteur est demandé (Diagnostics, déplié). Les compteurs n'affichent jamais de keycode. Cocher chaque case une fois le résultat attendu observé.
+Run these on a `make run` build, with Thock's menu open whenever a counter is involved (Diagnostics, expanded). The counters never show a keycode. Tick each box once the expected result has been observed.
 
-## 0. Préparation
+## 0. Setup
 
-- [ ] `make build` puis `make verify-signature` : `Authority=` affiche le certificat choisi dans `Config/Signing.local.xcconfig`, `flags=0x10000(runtime)`, `designated => identifier "io.github.dailyxplorer.thock" and certificate leaf = H"<SHA1 du certificat>"`.
-- [ ] Aucune invite de mot de passe pendant le build ni au lancement.
+- [ ] `make build` then `make verify-signature`: `Authority=` shows the certificate chosen in `Config/Signing.local.xcconfig`, `flags=0x10000(runtime)`, `designated => identifier "io.github.dailyxplorer.thock" and certificate leaf = H"<certificate SHA1>"`.
+- [ ] No password prompt during the build or at launch.
 
-## 1. Permission et onboarding
+## 1. Permission and onboarding
 
-- [ ] **Premier lancement sans permission** (`make reset-permissions`, puis `make run`) : la fenêtre « Bienvenue dans Thock » s'ouvre. L'icône de la barre des menus montre un clavier avec des points de suspension. Aucune invite système n'apparaît avant le clic.
-- [ ] **Octroi sans relance** : « Ouvrir les Réglages Système » ouvre Confidentialité et sécurité > Surveillance de l'entrée, où Thock est déjà listé. Activer Thock. En 1 s environ, la fenêtre passe à « C'est prêt » et le menu affiche « Actif », sans relancer l'app. Si les Réglages proposent « Quitter et rouvrir », choisir « Plus tard » : la capture doit fonctionner quand même.
-- [ ] **La permission survit à un rebuild** : modifier un fichier source (ou `make clean`), puis `make run`. Le menu affiche « Actif » tout de suite, sans invite ni mot de passe.
-- [ ] **Retrait puis rétablissement app lancée** : désactiver Thock dans Surveillance de l'entrée. En 3 s au plus, la fenêtre d'accueil se rouvre et l'icône change. Taper : aucun son. Réactiver : « C'est prêt » revient sans relance et les sons reviennent.
+- [ ] **First launch without permission** (`make reset-permissions`, then `make run`): the “Welcome to Thock” window opens. The menu bar icon shows a keyboard with an ellipsis. No system prompt appears before the click.
+- [ ] **Granting without a relaunch**: “Open System Settings” opens Privacy & Security > Input Monitoring, where Thock is already listed. Turn Thock on. Within about 1 s, the window switches to “All set” and the menu shows “Active”, without relaunching the app. If System Settings offers “Quit & Reopen”, choose “Later”: capture must work anyway.
+- [ ] **The permission survives a rebuild**: edit a source file (or `make clean`), then `make run`. The menu shows “Active” right away, with no prompt or password.
+- [ ] **Revoking then restoring while the app runs**: turn Thock off in Input Monitoring. Within 3 s at most, the welcome window reopens and the icon changes. Type: no sound. Turn it back on: “All set” comes back without a relaunch and the sounds return.
 
-## 2. Machine à états (compteurs Pressions / Relâchements)
+## 2. State machine (Presses / Releases counters)
 
-- [ ] **Suppr maintenu 5 s** : un seul son de pression et un seul de relâchement (+1 / +1), malgré l'auto-repeat.
-- [ ] **Frappe rapide** (phrase tapée vite, touches qui se chevauchent) : autant de pressions que de relâchements, aucun son manqué à l'oreille.
-- [ ] **Combinaisons de modificateurs** : ⇧ gauche, ⇧ droit, ⌘ gauche et droit, ⌥ gauche et droit, ⌃, Fn et Globe donnent chacun +1 / +1. ⇧ gauche maintenu puis ⇧ droit appuyé et relâché : le relâchement de ⇧ droit sonne, celui de ⇧ gauche sonne à son tour. ⌘C, ⌘⇧4 : un son par touche.
-- [ ] **Caps Lock** : une pression suivie d'un relâchement court à chaque appui, à l'activation comme à la désactivation.
-- [ ] **Touche `<`** (ISO, à gauche du W en AZERTY) et touches de ponctuation : elles sonnent.
+- [ ] **Delete held for 5 s**: a single press sound and a single release sound (+1 / +1), despite auto-repeat.
+- [ ] **Fast typing** (a sentence typed quickly, overlapping keys): as many presses as releases, no sound missing to the ear.
+- [ ] **Modifier combinations**: left ⇧, right ⇧, left and right ⌘, left and right ⌥, ⌃, Fn and Globe each give +1 / +1. Left ⇧ held, then right ⇧ pressed and released: the right ⇧ release sounds, then the left ⇧ release sounds in turn. ⌘C, ⌘⇧4: one sound per key.
+- [ ] **Caps Lock**: a press followed by a short release on every press, both when turning it on and off.
+- [ ] **`<` key** (ISO, left of Z on QWERTY, left of W on AZERTY) and punctuation keys: they make a sound.
 
 ## 3. Audio
 
-- [ ] **Un son à chaque frappe** dans plusieurs apps (Notes, Safari, Terminal sans saisie sécurisée).
-- [ ] **Qualité des sons** : `make preview PACK=<id>` pour comparer les 8 packs hors de l'app (`holypanda`, `cream`, `mxbrown`, `mxblack`, `mxblue`, `boxnavy`, `bluealps`, `topre`), puis taper avec chacun dans Thock, spatialisation activée puis désactivée. Noter ceux à retirer ou à garder par défaut.
-- [ ] **Rangées** : taper F5, 5, T, G, B avec un pack kbsim. Chaque rangée a son propre échantillon, et la même touche répétée varie légèrement en hauteur, en niveau et en timbre. Sur AZERTY, `<` (à gauche de W) sonne comme la rangée du bas.
-- [ ] **Attaque** : avec Topre puis MX Brown (les clips kbsim aux plus longs silences initiaux), le son doit partir aussi vite qu'avec Cream. Aucun clic en fin de son, même sur l'espace de MX Brown, coupée net dans l'enregistrement d'origine.
-- [ ] **Ancien pack enregistré** : au premier lancement de cette version, le pack Feutré enregistré dans les réglages n'existe plus. Thock sélectionne Holy Panda et le menu l'affiche coché.
-- [ ] **Changement de pack en tapant** : ouvrir Réglages > Packs, taper en continu d'une main et cliquer sur un autre pack de l'autre. Pas de coupure durable, pas de plantage, le nouveau pack sonne dès la frappe suivante.
-- [ ] **Latence réelle** : `make latency`, taper une minute, lire p50 et p99 dans Diagnostics (attendu : p99 < 2 ms). « Horodatages hors horloge hôte » ne doit pas augmenter à chaque frappe, sinon l'hypothèse sur l'unité du timestamp est fausse. Écouter aussi sur les haut-parleurs intégrés ou en filaire pour juger le délai ressenti (≈ 7 ms estimés).
-- [ ] **CPU sur sortie filaire** : choisir les haut-parleurs intégrés comme sortie système, puis `make cpu`. Attendu : < 1 % au repos, < 3 % pendant le banc.- [ ] **Débrancher puis rebrancher des AirPods en tapant** : pas de crash. Le son revient en moins d'une seconde sur la nouvelle sortie et « Reconstructions » augmente.
-- [ ] **Sortie choisie puis déconnectée** : choisir le casque dans « Sortie », puis l'éteindre. Le son passe sur la sortie par défaut et le menu affiche « Périphérique déconnecté ». Le rallumer : le son y revient.
-- [ ] **Instruments Allocations** (optionnel, la mesure automatisée couvre ce point) : profiler Thock pendant la frappe et filtrer sur `io.github.dailyxplorer.thock.audio`. Aucune allocation ne doit apparaître pendant la frappe, ni sur cette file ni sur le thread de rendu audio.
+- [ ] **A sound on every keystroke** in several apps (Notes, Safari, Terminal without secure input).
+- [ ] **Sound quality**: `make preview PACK=<id>` to compare the 8 packs outside the app (`holypanda`, `cream`, `mxbrown`, `mxblack`, `mxblue`, `boxnavy`, `bluealps`, `topre`), then type with each one in Thock, with spatialization on and then off. Note which ones to remove or to keep as the default.
+- [ ] **Rows**: type F5, 5, T, G, B with a kbsim pack. Each row has its own sample, and the same key repeated varies slightly in pitch, level and timbre. On AZERTY, `<` (left of W) sounds like the bottom row.
+- [ ] **Attack**: with Topre then MX Brown (the kbsim clips with the longest leading silences), the sound must start as fast as with Cream. No click at the end of a sound, even on the MX Brown space bar, which is cut abruptly in the original recording.
+- [ ] **Old saved pack**: on the first launch of this version, the old “Feutré” pack saved in the settings no longer exists. Thock selects Holy Panda and the menu shows it checked.
+- [ ] **Switching packs while typing**: open Settings > Packs, type continuously with one hand and click another pack with the other. No lasting dropout, no crash, the new pack sounds from the next keystroke.
+- [ ] **Real latency**: `make latency`, type for a minute, read p50 and p99 in Diagnostics (expected: p99 < 2 ms). “Timestamps off the host clock” must not increase with every keystroke, otherwise the assumption about the timestamp unit is wrong. Also listen on the built-in speakers or wired output to judge the perceived delay (≈ 7 ms estimated).
+- [ ] **CPU on wired output**: choose the built-in speakers as the system output, then `make cpu`. Expected: < 1 % at idle, < 3 % during the benchmark.
+- [ ] **Unplugging then reconnecting AirPods while typing**: no crash. The sound comes back in under a second on the new output and “Rebuilds” increases.
+- [ ] **Chosen output then disconnected**: choose the headphones in “Output”, then turn them off. The sound moves to the default output and the menu shows “Disconnected Device”. Turn them back on: the sound returns to them.
+- [ ] **Instruments Allocations** (optional, the automated measurement covers this): profile Thock while typing and filter on `io.github.dailyxplorer.thock.audio`. No allocation may appear while typing, neither on that queue nor on the audio render thread.
 
-## 4. Système
+## 4. System
 
-- [ ] **Veille et réveil** : mettre le Mac en veille, le réveiller, taper. Le son revient sans relancer l'app, et aucune touche ne reste « coincée » (pas de relâchement fantôme au premier appui).
-- [ ] **Verrouillage de session** : verrouiller l'écran (⌃⌘Q), déverrouiller, taper. Le son revient. Le mot de passe tapé sur l'écran verrouillé ne doit pas sonner.
-- [ ] **Champ de mot de passe** : cliquer dans un champ de mot de passe (Safari, Réglages). Le menu affiche « Saisie sécurisée active » en 2 s au plus et la frappe est silencieuse. En sortant du champ, l'indicateur disparaît et le son revient.
-- [ ] **Changement rapide d'utilisateur** (si un second compte existe) : basculer, revenir, taper. Le son revient.
+- [ ] **Sleep and wake**: put the Mac to sleep, wake it, type. The sound comes back without relaunching the app, and no key stays “stuck” (no phantom release on the first press).
+- [ ] **Session lock**: lock the screen (⌃⌘Q), unlock, type. The sound comes back. The password typed on the lock screen must not make a sound.
+- [ ] **Password field**: click into a password field (Safari, System Settings). The menu shows “Secure input is on” within 2 s at most and typing is silent. When leaving the field, the indicator disappears and the sound comes back.
+- [ ] **Fast user switching** (if a second account exists): switch, come back, type. The sound comes back.
 
-## 5. Interface et réglages
+## 5. Interface and settings
 
-- [ ] **Raccourci global** : ⌃⌥⌘K depuis n'importe quelle app coupe Thock (icône haut-parleur barré, menu « Coupé »), puis le réactive.
-- [ ] **Changer le raccourci** : Réglages > Général, cliquer sur ⌃⌥⌘K, taper ⌃⌥⌘J. Le nouveau raccourci marche, l'ancien ne fait plus rien. Taper ⌥A seul : refusé avec le message « doit contenir ⌘ ou ⌃ ». Échap annule. Quitter et relancer Thock : ⌃⌥⌘J est conservé. « Par défaut » rétablit ⌃⌥⌘K.
-- [ ] **Raccourci déjà pris** : essayer une combinaison réservée par une autre app ou par macOS. Thock garde l'ancien raccourci et affiche l'erreur.
-- [ ] **Sourdine micro (appel FaceTime)** : lancer un appel FaceTime (ou un mémo vocal). Le menu affiche « En sourdine : le micro est utilisé » et la frappe est silencieuse. Raccrocher : le son revient. Recommencer avec des AirPods comme entrée et sortie : même résultat.
-- [ ] **Règle micro désactivée** : Réglages > Sourdine, décocher la règle micro. Pendant l'appel, Thock sonne.
-- [ ] **App exclue** : Réglages > Sourdine > « Ajouter une app ouverte » > choisir une app (Notes). Passer au premier plan dans Notes : sourdine, avec « Notes est au premier plan » dans le menu. Ouvrir le menu de Thock depuis Notes : la sourdine reste. Passer dans une autre app : le son revient. Faire de même avec « Choisir une app… » et un `.app` de /Applications. Retirer l'app de la liste : le son revient dans Notes.
-- [ ] **Sortie système muette** : couper le son du Mac (touche muet). Le menu affiche « la sortie audio est muette » et Thock se tait. Rétablir : le son revient. Décocher la règle : Thock suit alors seulement le volume du périphérique.
-- [ ] **Sortie choisie muette** : choisir un casque dans « Sortie » alors que la sortie système reste les haut-parleurs. Couper les haut-parleurs : Thock continue de sonner dans le casque. Couper le casque : sourdine. Repasser sur « Sortie par défaut du système » pendant que le casque est muet : le son revient sans autre action.
-- [ ] **Pack illisible** : importer un pack, quitter Thock, corrompre `alpha_down_1` dans `~/Library/Application Support/Packs/<pack>`, relancer et choisir ce pack. Le menu et Réglages > Packs affichent l'erreur, la sélection revient au pack qui joue réellement.
-- [ ] **Synthétique** : avec un injecteur (Keyboard Maestro, expansion de texte), « Ignorés » augmente et les pressions non. Cocher « Inclure les frappes synthétiques » : les pressions augmentent.
-- [ ] **Sonde stateID / PID** : `make probe`, taper sur le clavier interne, un clavier USB, une souris, avec un injecteur et via Partage d'écran. Relever `stateID` et `pid` pour chaque source. Attendu pour le matériel : `stateID=1 accepted=true`. Si un injecteur donne aussi `stateID=1`, noter son `pid`.
-- [ ] **Tap HID sous sandbox** : `make probe-hid`. Le menu doit afficher « Actif » si le tap HID est accepté sous sandbox. Comparer le nombre d'événements avec `make probe`.
-- [ ] **Lancer au démarrage** : cocher l'option, se déconnecter puis se reconnecter. Thock est dans la barre des menus. Si le menu indique « À autoriser », l'activer dans Réglages Système > Général > Ouverture.
-- [ ] **Persistance** : changer volume, pack, sortie, spatialisation, sons de souris, règles et liste d'exclusion. Quitter, relancer : tout est conservé.
+- [ ] **Global shortcut**: ⌃⌥⌘K from any app turns Thock off (crossed-out speaker icon, menu shows “Off”), then back on.
+- [ ] **Changing the shortcut**: Settings > General, click ⌃⌥⌘K, type ⌃⌥⌘J. The new shortcut works, the old one does nothing. Type ⌥A alone: rejected with the message “must include ⌘ or ⌃”. Esc cancels. Quit and relaunch Thock: ⌃⌥⌘J is kept. “Default” restores ⌃⌥⌘K.
+- [ ] **Shortcut already taken**: try a combination reserved by another app or by macOS. Thock keeps the previous shortcut and shows the error.
+- [ ] **Microphone mute (FaceTime call)**: start a FaceTime call (or a voice memo). The menu shows “Muted: the microphone is in use” and typing is silent. Hang up: the sound comes back. Repeat with AirPods as both input and output: same result.
+- [ ] **Microphone rule turned off**: Settings > Mute, uncheck the microphone rule. During the call, Thock makes sound.
+- [ ] **Excluded app**: Settings > Mute > “Add Open App” > pick an app (Notes). Bring Notes to the front: muted, with “Notes is frontmost” in the menu. Open Thock's menu from Notes: the mute stays. Switch to another app: the sound comes back. Do the same with “Choose App…” and an `.app` from /Applications. Remove the app from the list: the sound comes back in Notes.
+- [ ] **System output muted**: mute the Mac (mute key). The menu shows “the audio output is muted” and Thock goes silent. Unmute: the sound comes back. Uncheck the rule: Thock then only follows the device volume.
+- [ ] **Chosen output muted**: choose headphones in “Output” while the system output stays on the speakers. Mute the speakers: Thock keeps sounding in the headphones. Mute the headphones: muted. Switch back to “System Default Output” while the headphones are muted: the sound comes back with no other action.
+- [ ] **Unreadable pack**: import a pack, quit Thock, corrupt `alpha_down_1` in `~/Library/Application Support/Packs/<pack>`, relaunch and choose that pack. The menu and Settings > Packs show the error, and the selection goes back to the pack actually playing.
+- [ ] **Synthetic**: with an injector (Keyboard Maestro, text expansion), “Ignored” increases and the presses don't. Check “Include Synthetic Keystrokes”: the presses increase.
+- [ ] **stateID / PID probe**: `make probe`, type on the built-in keyboard, a USB keyboard, a mouse, with an injector and through Screen Sharing. Note the `stateID` and `pid` for each source. Expected for hardware: `stateID=1 accepted=true`. If an injector also gives `stateID=1`, note its `pid`.
+- [ ] **HID tap under the sandbox**: `make probe-hid`. The menu must show “Active” if the HID tap is accepted under the sandbox. Compare the event count with `make probe`.
+- [ ] **Launch at Login**: check the option, log out, then log back in. Thock is in the menu bar. If the menu says to allow it, turn it on in System Settings > General > Login Items.
+- [ ] **Persistence**: change the volume, pack, output, spatialization, mouse sounds, rules and exclusion list. Quit, relaunch: everything is kept.
 
 ## 6. Packs
 
-- [ ] **Import par bouton** : Réglages > Packs > « Importer un dossier… », choisir un dossier valide (`pack.json` et `alpha_down_1.wav`, par exemple). Le pack apparaît « importé » après les packs embarqués, il est sélectionné et il sonne.
-- [ ] **Import par glisser-déposer** : glisser un dossier de pack depuis le Finder sur la liste. Même résultat.
-- [ ] **Pack invalide** : glisser un dossier sans `pack.json`, puis un dossier sans `alpha_down`. Message d'erreur explicite, rien n'est ajouté.
-- [ ] **Suppression** : supprimer le pack importé sélectionné. Il disparaît de la liste et du menu, et Thock revient à Holy Panda.
+- [ ] **Import with the button**: Settings > Packs > “Import Folder…”, choose a valid folder (`pack.json` and `alpha_down_1.wav`, for example). The pack appears as “imported” after the bundled packs, it is selected and it makes sound.
+- [ ] **Import by drag and drop**: drag a pack folder from the Finder onto the list. Same result.
+- [ ] **Invalid pack**: drag a folder without `pack.json`, then a folder without `alpha_down`. A clear error message, nothing is added.
+- [ ] **Deletion**: delete the selected imported pack. It disappears from the list and the menu, and Thock goes back to Holy Panda.
 
-## 7. Non testable à la main
+## 7. Not testable by hand
 
-- La réactivation sur `tapDisabledByTimeout` : le code réactive le tap et vide les touches tenues, et le watchdog couvre aussi le cas. Aucun moyen simple de la provoquer.
+- Re-enabling on `tapDisabledByTimeout`: the code re-enables the tap and clears the held keys, and the watchdog also covers the case. There is no simple way to trigger it.
