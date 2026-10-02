@@ -13,6 +13,8 @@ struct SettingsView: View {
                 .tabItem { Label("Mute", systemImage: "speaker.slash") }
             PackSettings(model: model)
                 .tabItem { Label("Packs", systemImage: "waveform") }
+            DiagnosticsSettings(model: model)
+                .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
         .padding()
         .frame(width: 520, height: 440)
@@ -32,6 +34,32 @@ struct GeneralSettings: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Toggle("Launch at Login", isOn: $model.launchAtLogin)
+            if model.loginItemStatus == .requiresApproval {
+                Label("Allow it in System Settings > General > Login Items.", systemImage: "exclamationmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if let error = model.loginItemError {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Section("Sound") {
+                Toggle("Spatialization", isOn: $model.spatialization)
+                Toggle("Mouse Sounds", isOn: $model.mouseSounds)
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear { model.refreshLoginItemStatus() }
+    }
+}
+
+struct DiagnosticsSettings: View {
+    let model: AppModel
+
+    var body: some View {
+        Form {
+            DiagnosticsView(model: model)
         }
         .formStyle(.grouped)
     }

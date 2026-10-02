@@ -3,6 +3,22 @@ import os
 import SwiftUI
 import ThockCore
 
+/// The state an offscreen `AppModel(snapshot:)` shows.
+struct SnapshotState {
+    var captureState: AppModel.CaptureState = .running
+    var muteReasons: MuteReasons = []
+    var secureInputActive = false
+    var isProbe = false
+    var packs: [PackEntry]
+    var packID: String
+    var packError: String?
+    var outputs: [OutputDevice]
+    var outputUID: String?
+    var volume = 0.8
+    var mouseSounds = false
+    var excludedFrontAppName: String?
+}
+
 enum Snapshots {
     static func write(model: AppModel) {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("snapshots", isDirectory: true)

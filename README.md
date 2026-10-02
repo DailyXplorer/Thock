@@ -26,11 +26,12 @@ Other targets:
 | `make logs [SINCE=2m]` | Thock's log, plus the TCC decisions and sandbox denials that concern it. No keycode ever appears in it. |
 | `make verify-signature` | Checks the signature, the entitlements and the designated requirement. |
 | `make cpu [IDLE=20 BENCH=20]` | CPU at idle, then during the synthetic typing benchmark (`BENCH=0`: idle only, no sound). |
-| `make latency` | Launches Thock with the latency histogram on (menu > Diagnostics). |
+| `make latency` | Launches Thock with the latency histogram on (Settings > Diagnostics). |
 | `make probe` / `make probe-hid` | Logs the type, `stateID` and PID of each event (never the keycode). The second one compares with an HID tap. |
 | `make render [PACK=mxblue LABEL=after]` | Renders a fast typing sequence offline (100 then 140 words/min, overlapping keys, a Backspace burst, five keys at once) with the real audio engine. Writes `build/renders/LABEL_PACK.wav` (48 kHz, a link into DerivedData, outside iCloud) and prints the peak, clipped samples, cut sounds and timing error. |
 | `make preview [PACK=cream]` | Plays a few keystrokes from a bundled pack with `afplay` (letters on several rows, space, return), without launching Thock. Defaults to `holypanda`. |
 | `make packs` | Downloads the kbsim recordings again and rewrites the bundled pack files that changed. Only this script touches the network, never the app. |
+| `make shots` | Renders the menu (light, dark, permission warning, muted), the menu bar icon in every state and the General and Diagnostics settings to PNG at 2x, without launching Thock. Writes to `$THOCK_SNAPSHOT_DIR`, or `/tmp/thock-shots`. |
 | `make icon` | Regenerates the app icon. |
 | `make clean` | Deletes the generated project and DerivedData. |
 
@@ -92,13 +93,16 @@ Changing identity changes the designated requirement: you have to grant the perm
 
 ## Usage
 
-**Menu bar menu.** The icon is a keyboard. It turns into a crossed-out speaker while muted, and a keyboard with an ellipsis while the permission is missing. The menu contains:
+**Menu bar menu.** The icon is a keycap with sound waves. It is crossed out when Thock is turned off, dimmed while an automatic mute applies, and carries an exclamation badge while the permission is missing. The menu contains:
 
-- the On/Off switch and the current mute reason (turned off, microphone in use, excluded app frontmost, system output muted);
-- a discreet indicator when secure input is on (`IsSecureEventInputEnabled()`, read every 2 s with a 1 s tolerance);
-- the volume, the pack, the audio output (system default or a specific device), spatialization and mouse sounds;
-- the “Include Synthetic Keystrokes” and “Launch at Login” options (`SMAppService.mainApp`);
-- diagnostics, collapsed by default: keycode-free counters, audio state and latency measurement.
+<img src="docs/assets/menu.png" alt="Thock's menu: On/Off switch, volume, sound pack, output and mouse click sounds" width="384">
+
+- the On/Off switch and the state (On, Off, Muted, Needs Permission);
+- a notice for each mute reason (microphone in use, excluded app frontmost, system output muted), for secure input (`IsSecureEventInputEnabled()`, read every 2 s with a 1 s tolerance), for a pack that failed to load, and for a missing permission;
+- the volume, the pack, the audio output (system default or a specific device) and mouse click sounds;
+- Settings (⌘,) and Quit (⌘Q).
+
+**Settings > General** holds the shortcut, “Include Synthetic Keystrokes”, “Launch at Login” (`SMAppService.mainApp`) and its notes, spatialization and mouse sounds. **Settings > Diagnostics** shows keycode-free counters, the audio state and the latency measurement.
 
 **Global shortcut.** By default, ⌃⌥⌘K turns Thock on or off. It goes through Carbon `RegisterEventHotKey`, with no permission. Change it in Settings > General: click, then type the combination, or press Esc to cancel. The shortcut must include ⌘ or ⌃, because macOS 15 rejects combinations of ⌥ or ⌥⇧ alone. If another app already owns the combination, Thock keeps the previous one and says so.
 
@@ -211,7 +215,7 @@ The benchmark is synthetic: it pushes events into the real ring without going th
 ## Troubleshooting
 
 - **Capture doesn't start even though the permission is granted.** Use “Relaunch Thock” in the menu. If the permission seems tied to an old build, run `make reset-permissions`, then grant it again.
-- **No sound.** Check the mute reason in the menu, then the diagnostics (“Audio stopped” or counters stuck at zero). `make logs` shows the engine state.
+- **No sound.** Check the mute reason in the menu, then Settings > Diagnostics (“Audio stopped” or counters stuck at zero). `make logs` shows the engine state.
 - **Manual tests.** See [MANUAL_TESTS.md](MANUAL_TESTS.md).
 
 ## Credits

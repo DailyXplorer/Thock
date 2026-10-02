@@ -67,6 +67,23 @@ targets:
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: NO
+  ThockSnapshots:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/Thock
+        excludes:
+          - Resources
+          - ThockApp.swift
+      - Tools/ThockSnapshots
+    dependencies:
+      - target: ThockCore
+    settings:
+      base:
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+        ENABLE_HARDENED_RUNTIME: NO
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
   ThockCoreTests:
     type: bundle.unit-test
     platform: macOS
@@ -101,5 +118,11 @@ schemes:
     build:
       targets:
         ThockRender: [run]
+    run:
+      config: Debug
+  ThockSnapshots:
+    build:
+      targets:
+        ThockSnapshots: [run]
     run:
       config: Debug
