@@ -165,4 +165,15 @@ struct KeyRowTests {
         let triggers = machine.reduce(RawInputEvent(kind: .keyDown, keycode: 12))
         #expect(triggers.first?.row == 2)
     }
+
+    @Test func isoKeysLeftOfOneAndRightOfShiftKeepTheirRow() {
+        let topLeft = KeyMap.entry(for: KeyMap.positionalKeycode(10, isISO: true))
+        let besideShift = KeyMap.entry(for: KeyMap.positionalKeycode(50, isISO: true))
+        #expect(topLeft.row == 1)
+        #expect(topLeft.column == 0.5 / 15)
+        #expect(besideShift.row == 4)
+        #expect(besideShift.column == 1.75 / 15)
+        #expect(KeyMap.positionalKeycode(50, isISO: false) == 50)
+        #expect(KeyMap.positionalKeycode(12, isISO: true) == 12)
+    }
 }
