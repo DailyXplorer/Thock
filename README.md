@@ -88,7 +88,7 @@ make build CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM=XXXXXXXXXX
 
 Changing identity changes the designated requirement: you have to grant the permission one last time, possibly after `make reset-permissions`.
 
-**Upgrading from an earlier build.** The bundle id changed to `io.github.dailyxplorer.thock`, so macOS sees an existing install as a different app: run `make reset-permissions` and grant Input Monitoring again. Settings and imported packs from the old id are not carried over.
+**Upgrading from an earlier build.** The bundle id changed to `io.github.dailyxplorer.thock`, so macOS sees an existing install as a different app. In System Settings > Privacy & Security > Input Monitoring, select the old “Thock” entry and remove it with the − button (or switch it off). Then launch the new build and grant Input Monitoring when asked. `make reset-permissions` only resets the current id, which is useful to re-test the onboarding, so it isn't the upgrade step. Settings and imported packs from the old id are not carried over.
 
 ## Usage
 
