@@ -98,7 +98,6 @@ public final class LoadedPack: @unchecked Sendable {
     public let sampleRate: Double
     let clips: ContiguousArray<Clip>
     let choices: ContiguousArray<ContiguousArray<Int>>
-    let longestClipSeconds: Double
     private let storage: UnsafeMutableBufferPointer<Float>
 
     init(source: PackSource, clips: [[Float]], sampleRate: Double) {
@@ -115,7 +114,6 @@ public final class LoadedPack: @unchecked Sendable {
             offset += clip.count
         }
         self.clips = placed
-        longestClipSeconds = Double(clips.map(\.count).max() ?? 0) / sampleRate
     }
 
     deinit {

@@ -10,6 +10,7 @@ pick() {
       [ -f "$PACK/$name.$ext" ] && { echo "$PACK/$name.$ext"; return; }
     done
   done
+  return 0
 }
 
 key() {
