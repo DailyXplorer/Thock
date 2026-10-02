@@ -180,7 +180,7 @@ public enum OfflineRenderError: Error {
 private final class Session {
     let audio: AudioEngine
     let pipeline: InputPipeline
-    let queue = DispatchQueue(label: "io.github.dailyxplorer.thock.render")
+    let queue = DispatchQueue(label: "\(AppIdentity.subsystem).render")
     let clock: Clock
     let sampleRate: Double
     let buffer: AVAudioPCMBuffer

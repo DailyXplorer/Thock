@@ -48,7 +48,7 @@ struct PackLibraryTests {
         #expect(throws: PackImportError.invalid(.missingAlphaDown)) { try library.importPack(from: noAlpha) }
 
         let badManifest = try Fixtures.temporaryPack(files: ["alpha_down_1.caf": [0.5]])
-        try Data(#"{"name":"Sans auteur"}"#.utf8).write(to: badManifest.appendingPathComponent("pack.json"))
+        try Data(#"{"name":"No author"}"#.utf8).write(to: badManifest.appendingPathComponent("pack.json"))
         #expect(throws: PackImportError.invalidManifest) { try library.importPack(from: badManifest) }
 
         let file = noAlpha.appendingPathComponent("space_down_1.caf")
@@ -98,7 +98,7 @@ struct KeyComboTests {
 
     @Test func recordsShortcutsWithCommandOrControlOnly() throws {
         let combo = try KeyCombo.from(keyCode: 49, modifiers: [.command, .shift], characters: " ").get()
-        #expect(combo.displayString == "⇧⌘Espace")
+        #expect(combo.displayString == "⇧⌘Space")
         #expect(try KeyCombo.from(keyCode: 0, modifiers: [.control], characters: "q").get().displayString == "⌃Q")
         #expect(throws: KeyCombo.Rejection.needsCommandOrControl) { try KeyCombo.from(keyCode: 0, modifiers: [.option, .shift], characters: "a").get() }
         #expect(throws: KeyCombo.Rejection.needsCommandOrControl) { try KeyCombo.from(keyCode: 0, modifiers: [], characters: "a").get() }

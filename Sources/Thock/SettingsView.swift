@@ -8,9 +8,9 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             GeneralSettings(model: model)
-                .tabItem { Label("Général", systemImage: "gearshape") }
+                .tabItem { Label("General", systemImage: "gearshape") }
             MuteSettings(model: model)
-                .tabItem { Label("Sourdine", systemImage: "speaker.slash") }
+                .tabItem { Label("Mute", systemImage: "speaker.slash") }
             PackSettings(model: model)
                 .tabItem { Label("Packs", systemImage: "waveform") }
         }
@@ -24,14 +24,14 @@ struct GeneralSettings: View {
 
     var body: some View {
         Form {
-            LabeledContent("Activer ou couper Thock") {
+            LabeledContent("Turn Thock On or Off") {
                 HotKeyRecorder(model: model)
             }
-            Toggle("Inclure les frappes synthétiques", isOn: $model.includeSynthetic)
-            Text("Par défaut, Thock ignore les frappes injectées par un logiciel (expanseur de texte, Keyboard Maestro, contrôle à distance) et ne joue que le clavier physique.")
+            Toggle("Include Synthetic Keystrokes", isOn: $model.includeSynthetic)
+            Text("By default, Thock ignores keystrokes injected by software (text expanders, Keyboard Maestro, remote control) and only plays the physical keyboard.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Toggle("Lancer au démarrage", isOn: $model.launchAtLogin)
+            Toggle("Launch at Login", isOn: $model.launchAtLogin)
         }
         .formStyle(.grouped)
     }
@@ -42,26 +42,26 @@ struct MuteSettings: View {
 
     var body: some View {
         Form {
-            Section("Sourdine automatique") {
-                Toggle("Quand le micro est utilisé (appel, dictée, enregistrement)", isOn: $model.muteRules.microphoneInUse)
-                Toggle("Quand la sortie son du système est muette", isOn: $model.muteRules.systemOutputMuted)
-                Toggle("Quand une app exclue est au premier plan", isOn: $model.muteRules.excludedApp)
+            Section("Automatic Mute") {
+                Toggle("When the microphone is in use (calls, dictation, recording)", isOn: $model.muteRules.microphoneInUse)
+                Toggle("When the system sound output is muted", isOn: $model.muteRules.systemOutputMuted)
+                Toggle("When an excluded app is frontmost", isOn: $model.muteRules.excludedApp)
             }
-            Section("Apps exclues") {
+            Section("Excluded Apps") {
                 if model.excludedBundleIDs.isEmpty {
-                    Text("Aucune app exclue.").foregroundStyle(.secondary)
+                    Text("No excluded apps.").foregroundStyle(.secondary)
                 }
                 ForEach(model.excludedBundleIDs, id: \.self) { bundleID in
                     ExcludedAppRow(bundleID: bundleID) { model.removeExcludedApp(bundleID: bundleID) }
                 }
                 HStack {
-                    Menu("Ajouter une app ouverte") {
+                    Menu("Add Open App") {
                         ForEach(runningApps, id: \.bundleID) { app in
                             Button(app.name) { model.excludeApp(bundleID: app.bundleID) }
                         }
                     }
                     .fixedSize()
-                    Button("Choisir une app…") { model.chooseAppToExclude() }
+                    Button("Choose App…") { model.chooseAppToExclude() }
                 }
             }
         }
@@ -95,7 +95,7 @@ private struct ExcludedAppRow: View {
             Spacer()
             Button(role: .destructive, action: remove) { Image(systemName: "minus.circle") }
                 .buttonStyle(.borderless)
-                .help("Retirer de la liste")
+                .help("Remove from List")
         }
     }
 }
@@ -113,14 +113,14 @@ struct PackSettings: View {
                         .foregroundStyle(pack.id == model.packID ? Color.accentColor : .secondary)
                     VStack(alignment: .leading) {
                         Text(pack.info.name)
-                        Text("\(pack.info.author) · \(pack.info.license)\(pack.isImported ? " · importé" : "")")
+                        Text("\(pack.info.author) · \(pack.info.license)\(pack.isImported ? " · imported" : "")")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()
                     if pack.isImported {
                         Button(role: .destructive) { delete(pack) } label: { Image(systemName: "trash") }
                             .buttonStyle(.borderless)
-                            .help("Supprimer ce pack importé")
+                            .help("Delete This Imported Pack")
                     }
                 }
                 .contentShape(Rectangle())
@@ -138,8 +138,8 @@ struct PackSettings: View {
             } isTargeted: { dropTargeted = $0 }
 
             HStack {
-                Button("Importer un dossier…") { choosePack() }
-                Text("ou glissez un dossier de pack sur la liste.").foregroundStyle(.secondary)
+                Button("Import Folder…") { choosePack() }
+                Text("or drag a pack folder onto the list.").foregroundStyle(.secondary)
             }
             if let error = model.packError {
                 Text(error)
@@ -153,7 +153,7 @@ struct PackSettings: View {
                     .foregroundStyle(message.isError ? .red : .secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text("Format : un dossier avec pack.json (name, author, license) et des fichiers catégorie_direction_variante.caf, .wav ou .aiff, par exemple alpha_down_1.caf, ou un fichier par rangée du clavier, de alpha_down_r0.caf (touches F) à alpha_down_r4.caf (rangée du bas).")
+            Text("Format: a folder with pack.json (name, author, license) and category_direction_variant.caf, .wav or .aiff files, for example alpha_down_1.caf, or one file per keyboard row, from alpha_down_r0.caf (function keys) to alpha_down_r4.caf (bottom row).")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -165,8 +165,8 @@ struct PackSettings: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Importer"
-        panel.message = "Choisissez le dossier d'un pack de sons."
+        panel.prompt = "Import"
+        panel.message = "Choose a sound pack folder."
         NSApp.activate()
         guard panel.runModal() == .OK, let url = panel.url else { return }
         importPack(url)
@@ -176,9 +176,9 @@ struct PackSettings: View {
         Task {
             do {
                 try await model.importPack(from: url)
-                message = ("Pack importé et sélectionné.", false)
+                message = ("Pack imported and selected.", false)
             } catch {
-                message = ("Import impossible : \(error.localizedDescription)", true)
+                message = ("Couldn't import the pack: \(error.localizedDescription)", true)
             }
         }
     }
@@ -186,9 +186,9 @@ struct PackSettings: View {
     private func delete(_ pack: PackEntry) {
         do {
             try model.deletePack(pack)
-            message = ("« \(pack.info.name) » supprimé.", false)
+            message = ("“\(pack.info.name)” deleted.", false)
         } catch {
-            message = ("Suppression impossible : \(error.localizedDescription)", true)
+            message = ("Couldn't delete the pack: \(error.localizedDescription)", true)
         }
     }
 }
