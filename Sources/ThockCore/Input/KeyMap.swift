@@ -34,6 +34,17 @@ public enum KeyMap {
         keycode < 256 ? table[Int(keycode)] : fallback
     }
 
+    // The table follows ANSI positions. ISO keyboards report the key left of 1 as 10 and the key
+    // right of left Shift as 50, the reverse of what those positions mean on ANSI.
+    public static func positionalKeycode(_ keycode: UInt16, isISO: Bool) -> UInt16 {
+        guard isISO else { return keycode }
+        switch keycode {
+        case 10: return 50
+        case 50: return 10
+        default: return keycode
+        }
+    }
+
     static let fallback = KeyEntry(category: .alpha, column: 0.5, row: 2, modifier: .none)
 
     private static let width: Float = 15

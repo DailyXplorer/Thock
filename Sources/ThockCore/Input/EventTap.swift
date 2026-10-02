@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
 
@@ -97,6 +98,8 @@ private final class TapContext: @unchecked Sendable {
     let onPermissionLost: @Sendable () -> Void
     var port: CFMachPort?
     var permissionLostReported = false
+    var lastKeyboardType: Int64 = -1
+    var lastKeyboardIsISO = false
 
     init(ring: EventRing, wake: DispatchSourceUserDataAdd, onPermissionLost: @escaping @Sendable () -> Void) {
         self.ring = ring
@@ -127,6 +130,14 @@ private final class TapContext: @unchecked Sendable {
         }
     }
 
+    func isISO(_ keyboardType: Int64) -> Bool {
+        if keyboardType != lastKeyboardType {
+            lastKeyboardType = keyboardType
+            lastKeyboardIsISO = KBGetLayoutType(Int16(truncatingIfNeeded: keyboardType)) == PhysicalKeyboardLayoutType(kKeyboardISO)
+        }
+        return lastKeyboardIsISO
+    }
+
     func handle(_ type: CGEventType, _ event: CGEvent) {
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
@@ -136,7 +147,8 @@ private final class TapContext: @unchecked Sendable {
             let keycode: UInt16 = switch type {
             case .leftMouseDown, .leftMouseUp: KeyMap.leftMouseButton
             case .rightMouseDown, .rightMouseUp: KeyMap.rightMouseButton
-            default: UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode))
+            default: KeyMap.positionalKeycode(UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode)),
+                                              isISO: isISO(event.getIntegerValueField(.keyboardEventKeyboardType)))
             }
             push(RawInputEvent(kind: kind,
                                keycode: keycode,
