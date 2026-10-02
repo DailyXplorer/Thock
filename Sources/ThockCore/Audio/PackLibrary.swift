@@ -14,12 +14,12 @@ public enum PackImportError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .notAFolder: "Un pack est un dossier."
-        case .invalidManifest: "pack.json est illisible : il doit contenir name, author et license."
-        case .invalid(.missingManifest): "Le dossier ne contient pas de pack.json."
-        case .invalid(.missingAlphaDown): "Le pack doit contenir au moins alpha_down_1 (.caf, .wav ou .aiff)."
-        case .invalid(.silent): "Tous les sons du pack sont silencieux."
-        case .invalid(.unreadable(let name)): "Fichier audio illisible : \(name)."
+        case .notAFolder: "A pack must be a folder."
+        case .invalidManifest: "pack.json can't be read: it must contain name, author and license."
+        case .invalid(.missingManifest): "The folder has no pack.json."
+        case .invalid(.missingAlphaDown): "The pack must contain at least alpha_down_1 (.caf, .wav or .aiff)."
+        case .invalid(.silent): "Every sound in the pack is silent."
+        case .invalid(.unreadable(let name)): "Unreadable audio file: \(name)."
         }
     }
 }
