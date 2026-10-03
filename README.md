@@ -1,15 +1,31 @@
 # Thock
 
-Thock plays a mechanical keyboard sound on every keystroke, in every app on your Mac. It lives in the menu bar. It has no main window and no Dock icon.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-lightgrey.svg)
+![Swift 6](https://img.shields.io/badge/Swift-6-orange.svg)
 
-- macOS 14 or later, Swift 6, SwiftUI and AppKit, no third-party dependencies.
-- App Sandbox and Hardened Runtime enabled.
-- A single permission: **Input Monitoring**. Thock never asks for Accessibility.
-- No network access. No keystroke is stored or logged.
+Mechanical keyboard sounds on every keystroke, in every app on your Mac.
+
+<img src="docs/assets/menu.png" alt="Thock's menu: On/Off switch, volume, sound pack, output and mouse click sounds" width="384">
+
+Thock lives in the menu bar, with no main window and no Dock icon.
+
+- Eight real switch recordings (Holy Panda, Cream, MX Brown, MX Black, MX Blue, Box Navy, Alps, Topre), or your own pack.
+- Mutes itself during calls, in apps you exclude and when the sound output is muted.
+- One permission, **Input Monitoring**. No Accessibility, no network access, nothing you type is stored or logged.
+- macOS 14 or later. Swift 6, SwiftUI and AppKit, App Sandbox and Hardened Runtime, no third-party dependencies.
 
 ## Installation
 
-Requirements: Xcode 27 and XcodeGen (`brew install xcodegen`).
+There is no prebuilt release yet: build it from source. You need Xcode 27 and XcodeGen (`brew install xcodegen`).
+
+```sh
+git clone https://github.com/DailyXplorer/thock.git
+cd thock
+make run
+```
+
+`make run` builds the app and launches `build/Thock.app`. On first launch, Thock asks for Input Monitoring (see below). The default build is signed ad hoc, so macOS asks for the permission again after every rebuild. [Signing](#signing) explains how to set a stable identity.
 
 ```sh
 make build              # generates Thock.xcodeproj, builds and signs; build/Thock.app points to the product
@@ -31,7 +47,7 @@ Other targets:
 | `make render [PACK=mxblue LABEL=after]` | Renders a fast typing sequence offline (100 then 140 words/min, overlapping keys, a Backspace burst, five keys at once) with the real audio engine. Writes `build/renders/LABEL_PACK.wav` (48 kHz, a link into DerivedData, outside iCloud) and prints the peak, clipped samples, cut sounds and timing error. |
 | `make preview [PACK=cream]` | Plays a few keystrokes from a bundled pack with `afplay` (letters on several rows, space, return), without launching Thock. Defaults to `holypanda`. |
 | `make packs` | Downloads the kbsim recordings again and rewrites the bundled pack files that changed. Only this script touches the network, never the app. |
-| `make shots` | Renders the menu (light, dark, permission warning, muted), the menu bar icon in every state and the General and Diagnostics settings to PNG at 2x, without launching Thock. Writes to `$THOCK_SNAPSHOT_DIR`, or `/tmp/thock-shots`. |
+| `make shots` | Renders the menu (light, dark, permission warning, muted), the menu bar icon in every state and the General and Diagnostics settings to PNG at 2x, without launching Thock. Writes metadata-free PNGs to `$THOCK_SNAPSHOT_DIR`, or `/tmp/thock-shots`. The popover background is approximated, and switches draw their inactive track because the offscreen window is never key. `docs/assets/menu.png` is `menu-light.png`. |
 | `make icon` | Regenerates the app icon. |
 | `make clean` | Deletes the generated project and DerivedData. |
 
@@ -89,13 +105,9 @@ make build CODE_SIGN_IDENTITY="Apple Development" DEVELOPMENT_TEAM=XXXXXXXXXX
 
 Changing identity changes the designated requirement: you have to grant the permission one last time, possibly after `make reset-permissions`.
 
-**Upgrading from an earlier build.** The bundle id changed to `io.github.dailyxplorer.thock`, so macOS sees an existing install as a different app. In System Settings > Privacy & Security > Input Monitoring, select the old “Thock” entry and remove it with the − button (or switch it off). Then launch the new build and grant Input Monitoring when asked. `make reset-permissions` only resets the current id, which is useful to re-test the onboarding, so it isn't the upgrade step. Settings and imported packs from the old id are not carried over.
-
 ## Usage
 
 **Menu bar menu.** The icon is a keycap with sound waves. It is crossed out when Thock is turned off, dimmed while an automatic mute applies, and carries an exclamation badge while the permission is missing. The menu contains:
-
-<img src="docs/assets/menu.png" alt="Thock's menu: On/Off switch, volume, sound pack, output and mouse click sounds" width="384">
 
 - the On/Off switch and the state (On, Off, Muted, Needs Permission);
 - a notice for each mute reason (microphone in use, excluded app frontmost, system output muted), for secure input (`IsSecureEventInputEnabled()`, read every 2 s with a 1 s tolerance), for a pack that failed to load, and for a missing permission;
@@ -108,7 +120,7 @@ Changing identity changes the designated requirement: you have to grant the perm
 
 **Automatic mute** (Settings > Mute). Each rule can be turned off separately:
 
-- **Microphone in use.** A listener on `kAudioDevicePropertyDeviceIsRunningSomewhere` of the default input, re-subscribed when the default input changes. This property covers both directions of a device. When the input is also Thock's output (AirPods, USB headset), it would always be true because of Thock itself. In that case, Thock asks each audio process whether it is recording (`kAudioProcessPropertyIsRunningInput`, macOS 14.2+). No input stream is ever opened.
+- **Microphone in use.** A listener on `kAudioDevicePropertyDeviceIsRunningSomewhere` of the default input, re-subscribed when the default input changes. This property covers both directions of a device. When the default input can also play sound (AirPods, USB headset), it would be true as soon as anything plays, Thock included. In that case, Thock asks each audio process whether it is recording (`kAudioProcessPropertyIsRunningInput`, macOS 14.2+). No input stream is ever opened.
 - **Excluded app frontmost.** A list of bundle ids, filled from the open apps or by choosing an `.app`. Thock follows `NSWorkspace.didActivateApplicationNotification`. Opening Thock's menu or settings doesn't lift the mute for the app underneath.
 - **System output muted.** The mute state of the default output, tracked by a Core Audio listener.
 
@@ -138,7 +150,7 @@ MyPack/
   - `category_direction_rROW` or `category_direction_rROW_variant`: `alpha_down_r2.caf`, `alpha_down_r2_3.wav`, played on that row only.
 - Extensions: `caf`, `wav`, `aiff`, `aif`. `source` is optional in `pack.json`.
 - Categories: `alpha` (letters and digits), `space`, `enter`, `backspace`, `tab`, `modifier`, `arrow`, `punctuation` and `mouse`. Directions: `down` for the press, `up` for the release.
-- Rows: the physical row of the key, derived from its virtual keycode, so it is the same on AZERTY, QWERTY and ISO. The ISO `<` key (keycode 10) is on row 4. The split follows kbsim, where the space row shares the row 4 sample.
+- Rows: the physical row of the key, derived from its virtual keycode, so it is the same on AZERTY, QWERTY and ISO. ISO keyboards report the `<` key and the key left of 1 with the keycodes ANSI uses the other way around (10 and 50). Thock swaps them back, so `<` is on row 4. The split follows kbsim, where the space row shares the row 4 sample.
 - For a key, Thock takes the files for its row, otherwise the variants without a row, otherwise the nearest recorded row. A category with no file at all falls back to `alpha` in the same direction, for the same row. A pack in the row-less `alpha_down_1.caf` format therefore works as before.
 - At least one `alpha_down` file is required, with or without a row.
 - On load, Thock mixes to mono and resamples. It then trims each file 1 ms before the first sample at 20 dB below its own peak, and after the last one at 45 dB below it. Short fades avoid clicks at both cuts. Finally, it normalizes the whole pack to -1 dBFS peak. The threshold is relative because the recordings differ in level by up to 20 dB and have an MP3 noise floor around -50 dBFS: an absolute threshold triggered on the noise and left up to 20 ms of silence before the attack. A single gain for the whole pack keeps the intended differences, for example a space bar louder than a letter.
@@ -198,7 +210,7 @@ The benchmark is synthetic: it pushes events into the real ring without going th
 - **Secure input.** In a password field, or when an app turns on secure input (Terminal with “Secure Keyboard Entry”, some password managers), macOS stops sending keystrokes to the tap. Thock goes silent and the menu says so. This is intended, Thock doesn't work around it.
 - **Bluetooth.** Latency is imposed by the headphones (Bluetooth headphones often report over 150 ms). No Thock setting changes that. Wired or on the built-in speakers, the delay is a few ms.
 - **Allocations.** Nothing allocates between the tap and the `Sampler`'s ring, nor in its render block: measured with a `malloc_logger` hook. AVAudioEngine's `renderOffline` itself allocates 2 blocks per 64 cycles, whether there are 12 voices to mix or none.
-- **Microphone on a shared device.** When the default input is also Thock's output, detection goes through the audio processes, which requires macOS 14.2. On macOS 14.0 and 14.1, the rule doesn't trigger in that case.
+- **Microphone on a shared device.** When the default input is also Thock's output, detection needs the audio process list of macOS 14.2. On macOS 14.0 and 14.1, the rule doesn't trigger in that case.
 - **Synthetic keystrokes.** The filter keeps `eventSourceStateID == 1` (HID state). That is the expected value for hardware. It still needs confirming with `make probe` on each kind of keyboard and injector.
 - **CGEvent timestamp unit.** It is assumed to be in `mach_absolute_time` ticks. The “Timestamps off the host clock” counter in Diagnostics will check this during real typing. If the assumption is wrong, Thock still plays every sound.
 - **Launch at Login.** `SMAppService.mainApp` registers the bundle at its actual location, here inside DerivedData. After `make clean`, you have to turn the option on again.
@@ -206,9 +218,9 @@ The benchmark is synthetic: it pushes events into the real ring without going th
 ## Privacy
 
 - Thock receives keyboard and mouse events in listen-only mode (`.listenOnly`). It can neither modify nor inject them.
-- Only the event type, keycode, modifiers, auto-repeat flag, source and timestamp are copied, then forgotten after the sound. Nothing is written to disk.
-- No keycode is ever logged, even in probe mode. `RawInputEvent` has no text description.
-- No network entitlement, no telemetry.
+- Only the event type, keycode, modifiers, auto-repeat flag, source and timestamp are copied. The keycode only picks a sound and tracks which keys are held. Nothing is written to disk.
+- No keycode is ever logged. Logs carry the audio engine state and counters. Probe mode adds each event's type, source state ID and process ID, never its keycode.
+- No network code, no network entitlement (the sandbox blocks any connection), no analytics, no telemetry.
 - Entitlements: `com.apple.security.app-sandbox` and `com.apple.security.files.user-selected.read-only` (pack import, choosing an app to exclude). In Debug, Xcode adds `get-task-allow`. Reading the microphone state works without `com.apple.security.device.audio-input`: checked under the sandbox, with no TCC trace in the log.
 - The only persisted data are the settings (`UserDefaults`) and the imported packs.
 
@@ -218,7 +230,15 @@ The benchmark is synthetic: it pushes events into the real ring without going th
 - **No sound.** Check the mute reason in the menu, then Settings > Diagnostics (“Audio stopped” or counters stuck at zero). `make logs` shows the engine state.
 - **Manual tests.** See [MANUAL_TESTS.md](MANUAL_TESTS.md).
 
+## Contributing
+
+Bug reports, fixes and sound packs are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Report security issues privately, as described in [SECURITY.md](SECURITY.md).
+
 ## Credits
 
 - **Bundled pack sounds**: switch recordings from [kbsim](https://github.com/tplai/kbsim) by Thomas Lai, under the MIT license (`src/assets/audio` folder). Thock converts them to mono CAF at 48 kHz, then trims and normalizes them on load. The per-row split of the samples also follows kbsim. Full license text: [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
 - Thock uses neither the name, the icon nor the sounds of Klack.
+
+## License
+
+Thock is released under the [MIT License](LICENSE). The bundled sounds keep their own MIT license, see [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
