@@ -38,6 +38,22 @@ enum Appearance: String, CaseIterable {
     var name: NSAppearance.Name { self == .light ? .aqua : .darkAqua }
 }
 
+func strippingMetadata(_ png: Data) -> Data {
+    let metadataChunks: Set<String> = ["eXIf", "tEXt", "iTXt", "zTXt", "tIME"]
+    let bytes = [UInt8](png)
+    var output = Data(bytes.prefix(8))
+    var offset = 8
+    while offset + 12 <= bytes.count {
+        let length = bytes[offset..<offset + 4].reduce(0) { $0 << 8 | Int($1) }
+        let end = offset + 12 + length
+        if !metadataChunks.contains(String(decoding: bytes[offset + 4..<offset + 8], as: UTF8.self)) {
+            output.append(contentsOf: bytes[offset..<end])
+        }
+        offset = end
+    }
+    return output
+}
+
 func writePNG(_ view: some View, width: CGFloat, appearance: Appearance, to name: String) {
     let host = NSHostingView(rootView: view.frame(width: width))
     host.appearance = NSAppearance(named: appearance.name)
@@ -58,7 +74,7 @@ func writePNG(_ view: some View, width: CGFloat, appearance: Appearance, to name
     bitmap.size = size
     host.cacheDisplay(in: host.bounds, to: bitmap)
     let url = folder.appendingPathComponent(name)
-    try? bitmap.representation(using: .png, properties: [:])?.write(to: url)
+    try? bitmap.representation(using: .png, properties: [:]).map(strippingMetadata)?.write(to: url)
     window.close()
     print(url.path)
 }
