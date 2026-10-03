@@ -3,7 +3,6 @@ import os
 import SwiftUI
 import ThockCore
 
-/// The state an offscreen `AppModel(snapshot:)` shows.
 struct SnapshotState {
     var captureState: AppModel.CaptureState = .running
     var muteReasons: MuteReasons = []

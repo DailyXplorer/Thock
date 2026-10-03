@@ -1,7 +1,6 @@
 import SwiftUI
 import ThockCore
 
-/// One status line the popover can show under its header.
 struct MenuNotice: Identifiable {
     enum Tone {
         case info
@@ -22,7 +21,6 @@ struct MenuNotice: Identifiable {
 }
 
 extension AppModel {
-    /// The one-word state shown next to the switch; the notices carry the details.
     var stateTitle: String {
         switch captureState {
         case .needsPermission: "Needs Permission"
@@ -77,8 +75,6 @@ extension AppModel {
     }
 }
 
-/// Control Center–like: a one-line header with the switch, then one aligned column of full-width controls.
-/// Everything set once and rarely changed lives in Settings.
 struct MenuView: View {
     @Bindable var model: AppModel
 
@@ -168,7 +164,6 @@ struct MenuView: View {
 }
 
 private extension View {
-    /// Menu pickers hug their title; only macOS 26 lets them stretch to the column width.
     @ViewBuilder
     func fullWidth() -> some View {
         if #available(macOS 26.0, *) {

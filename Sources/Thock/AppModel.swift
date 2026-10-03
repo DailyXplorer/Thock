@@ -240,7 +240,6 @@ final class AppModel {
         }
     }
 
-    /// A model frozen in `state`, with no capture, audio output, monitors or hot key, for rendering views offscreen.
     init(snapshot state: SnapshotState) {
         isProbe = state.isProbe
         tapLocation = .session
@@ -492,14 +491,12 @@ final class AppModel {
         packLoad = Task { [weak self] in
             do {
                 let source = try await Task.detached(priority: .userInitiated) { try PackLoader.load(directory: url) }.value
-                // A newer selection cancelled this load while it ran off the main actor; its result is stale.
                 guard !Task.isCancelled, let self else { return }
                 audio.setPack(source)
                 loadedPackID = id
             } catch {
                 guard !Task.isCancelled, let self else { return }
                 Logger(subsystem: AppIdentity.subsystem, category: "audio").error("Pack \(id, privacy: .public) failed to load: \(String(describing: error), privacy: .public)")
-                // Point the selection back at the pack the engine still plays, so the UI never shows a pack it isn't playing.
                 if let fallback = loadedPackID ?? (id == Self.defaultPackID ? nil : Self.defaultPackID) {
                     packID = fallback
                 }

@@ -57,7 +57,6 @@ public final class MicrophoneMonitor {
         let input = Self.defaultInput
         watch(input: input)
         let inUse: Bool
-        // A duplex device also runs for playback, so only per-process input state proves recording.
         if let input, Self.hasOutputStreams(input), #available(macOS 14.2, *) {
             let processes = Self.audioProcesses()
             watch(processes: processes)

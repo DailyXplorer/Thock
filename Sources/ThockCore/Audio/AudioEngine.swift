@@ -56,8 +56,7 @@ public final class AudioEngine: @unchecked Sendable {
     private var lastPick = ContiguousArray<Int>(repeating: -1, count: SoundKey.count)
     private var random: RandomSource
     private var lastSoundEnd: UInt64 = 0
-    // Latest host time a queued voice may still read the current pack's samples; a retired pack lives past it.
-    private var voicesEnd: UInt64 = 0
+    private var queuedVoicesEnd: UInt64 = 0
     private var spatial = true
     private var mouseSounds = false
     private var selectedOutput: String?
@@ -116,7 +115,7 @@ public final class AudioEngine: @unchecked Sendable {
             let sampleRate = self.outputSampleRate
             if let retired = self.pack {
                 let now = HostClock.now
-                let playing = self.voicesEnd > now ? HostClock.nanoseconds(self.voicesEnd - now) : 0
+                let playing = self.queuedVoicesEnd > now ? HostClock.nanoseconds(self.queuedVoicesEnd - now) : 0
                 self.queue.asyncAfter(deadline: .now() + .nanoseconds(Int(playing)) + 1) { withExtendedLifetime(retired) {} }
             }
             self.pack = PackLoader.render(source, sampleRate: sampleRate > 0 ? sampleRate : PackSource.sampleRate)
@@ -202,7 +201,7 @@ public final class AudioEngine: @unchecked Sendable {
         case .afterPress:
             start = lastSoundEnd
         }
-        voicesEnd = max(voicesEnd, max(start, now) &+ duration)
+        queuedVoicesEnd = max(queuedVoicesEnd, max(start, now) &+ duration)
         let pan = spatial ? (trigger.column * 2 - 1) * 0.6 : 0
         let queued = sampler.play(VoiceCommand(
             samples: clip.samples, eventTime: start, length: UInt32(clip.count), rate: rate,

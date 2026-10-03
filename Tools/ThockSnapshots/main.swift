@@ -2,9 +2,6 @@ import AppKit
 import SwiftUI
 import ThockCore
 
-// Renders the popover, the menu bar icon states and the Settings tabs to PNG without launching Thock.
-// usage: ThockSnapshots <packs-folder>; PNGs go to $THOCK_SNAPSHOT_DIR or /tmp/thock-shots.
-
 let arguments = CommandLine.arguments
 guard arguments.count == 2 else {
     FileHandle.standardError.write(Data("usage: ThockSnapshots <packs-folder>\n".utf8))
@@ -15,8 +12,6 @@ NSApplication.shared.setActivationPolicy(.prohibited)
 let folder = URL(fileURLWithPath: ProcessInfo.processInfo.environment["THOCK_SNAPSHOT_DIR"] ?? "/tmp/thock-shots", isDirectory: true)
 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-// PackLibrary skips hidden folders, and some checkouts (iCloud-synced worktrees) carry the hidden flag on every pack
-// folder, so read the packs from a copy with the flag cleared.
 let scratch = FileManager.default.temporaryDirectory.appendingPathComponent("thock-snapshot-packs", isDirectory: true)
 try? FileManager.default.removeItem(at: scratch)
 try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
@@ -68,8 +63,6 @@ func writePNG(_ view: some View, width: CGFloat, appearance: Appearance, to name
     print(url.path)
 }
 
-/// A popover-like frame: real popovers are a translucent material over the desktop, approximated here by a solid fill over a soft gradient.
-/// The offscreen window is never key, so switches draw their inactive gray track instead of the accent color.
 struct PopoverStage<Content: View>: View {
     let appearance: Appearance
     @ViewBuilder let content: Content
