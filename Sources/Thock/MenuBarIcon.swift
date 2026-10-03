@@ -1,6 +1,5 @@
 import AppKit
 
-/// The menu bar icon: a keycap with sound waves, drawn as a monochrome template image.
 enum MenuBarIcon {
     enum State: CaseIterable {
         case on
@@ -12,7 +11,6 @@ enum MenuBarIcon {
     static func image(_ state: State) -> NSImage {
         let image = NSImage(size: NSSize(width: 22, height: 16), flipped: true) { rect in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
-            // Template alpha survives in the menu bar, so an automatic mute reads as a dimmed icon, unlike the slashed manual off.
             context.setAlpha(state == .muted ? 0.45 : 1)
             context.beginTransparencyLayer(auxiliaryInfo: nil)
             drawKeycap(in: CGRect(x: 1, y: 2, width: 13, height: 12))
@@ -35,7 +33,6 @@ enum MenuBarIcon {
         let skirt = NSBezierPath(roundedRect: rect.insetBy(dx: 0.7, dy: 0.7), xRadius: 3.2, yRadius: 3.2)
         skirt.lineWidth = 1.4
         skirt.stroke()
-        // The top face sits high in the skirt, with short bevels to the lower corners, so the shape reads as a keycap and not a button.
         let face = CGRect(x: rect.minX + 3, y: rect.minY + 2.2, width: rect.width - 6, height: rect.height - 6.6)
         let outline = NSBezierPath(roundedRect: face, xRadius: 1.6, yRadius: 1.6)
         outline.lineWidth = 1.1
@@ -49,7 +46,6 @@ enum MenuBarIcon {
         bevels.stroke()
     }
 
-    /// A filled dot with an exclamation mark knocked out, cut clear of the keycap corner it overlaps.
     private static func drawBadge(at center: CGPoint) {
         let radius = 4.2
         NSGraphicsContext.current?.compositingOperation = .clear

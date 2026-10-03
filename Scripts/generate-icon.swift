@@ -74,7 +74,23 @@ func png(size: Int) -> Data {
     let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil)!
     CGImageDestinationAddImage(destination, context.makeImage()!, nil)
     CGImageDestinationFinalize(destination)
-    return data as Data
+    return strippingMetadata(data as Data)
+}
+
+func strippingMetadata(_ png: Data) -> Data {
+    let metadataChunks: Set<String> = ["eXIf", "tEXt", "iTXt", "zTXt", "tIME"]
+    let bytes = [UInt8](png)
+    var output = Data(bytes.prefix(8))
+    var offset = 8
+    while offset + 12 <= bytes.count {
+        let length = bytes[offset..<offset + 4].reduce(0) { $0 << 8 | Int($1) }
+        let end = offset + 12 + length
+        if !metadataChunks.contains(String(decoding: bytes[offset + 4..<offset + 8], as: UTF8.self)) {
+            output.append(contentsOf: bytes[offset..<end])
+        }
+        offset = end
+    }
+    return output
 }
 
 func writeIfChanged(_ data: Data, to url: URL) throws {

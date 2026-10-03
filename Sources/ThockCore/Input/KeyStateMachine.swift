@@ -78,7 +78,6 @@ public struct KeyStateMachine: Sendable {
                         batch.append(trigger(entry, .up))
                     }
                 } else if event.flags & generic != 0 {
-                    // The generic flag stays set while the other side is held, so a change on a held key is its release.
                     if pressed.remove(event.keycode) {
                         batch.append(trigger(entry, .up))
                     } else {
